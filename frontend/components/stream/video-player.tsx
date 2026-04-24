@@ -9,7 +9,6 @@ import {
   Maximize,
   Minimize,
   SkipForward,
-  SkipBack,
   Settings,
   Subtitles,
   X,
@@ -23,21 +22,26 @@ interface VideoPlayerProps {
   isOpen: boolean
   onClose: () => void
   videoTitle: string
+  videoId?: string
   videoSrc?: string
   posterImage?: string
+  onProgressUpdate?: (currentTime: number, duration: number) => void
 }
 
 export function VideoPlayer({
   isOpen,
   onClose,
   videoTitle,
+  videoId,
   videoSrc = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
   posterImage,
+  onProgressUpdate,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const progressRef = useRef<HTMLDivElement>(null)
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const lastProgressSyncRef = useRef(0)
 
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -103,7 +107,7 @@ export function VideoPlayer({
     }
   }
 
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     if (videoRef.current) {
       if (isMuted) {
         videoRef.current.volume = volume || 1
@@ -113,7 +117,7 @@ export function VideoPlayer({
         setIsMuted(true)
       }
     }
-  }
+  }, [isMuted, volume])
 
   // Fullscreen toggle
   const toggleFullscreen = async () => {
@@ -151,14 +155,14 @@ export function VideoPlayer({
   }
 
   // Skip forward/backward
-  const skip = (seconds: number) => {
+  const skip = useCallback((seconds: number) => {
     if (videoRef.current) {
       videoRef.current.currentTime = Math.max(
         0,
         Math.min(duration, videoRef.current.currentTime + seconds)
       )
     }
-  }
+  }, [duration])
 
   // Playback rate
   const changePlaybackRate = (rate: number) => {
@@ -226,7 +230,7 @@ export function VideoPlayer({
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [isOpen, isPlaying, volume, isFullscreen, togglePlay, showControlsWithTimeout, onClose])
+  }, [isOpen, isPlaying, volume, isFullscreen, togglePlay, showControlsWithTimeout, onClose, skip, toggleMute])
 
   // Video event handlers
   useEffect(() => {
@@ -235,7 +239,18 @@ export function VideoPlayer({
 
     const onPlay = () => setIsPlaying(true)
     const onPause = () => setIsPlaying(false)
-    const onTimeUpdate = () => setCurrentTime(video.currentTime)
+    const onTimeUpdate = () => {
+      setCurrentTime(video.currentTime)
+      const now = Date.now()
+      if (
+        onProgressUpdate &&
+        video.duration > 0 &&
+        now - lastProgressSyncRef.current >= 5000
+      ) {
+        onProgressUpdate(video.currentTime, video.duration)
+        lastProgressSyncRef.current = now
+      }
+    }
     const onDurationChange = () => setDuration(video.duration)
     const onProgress = () => {
       if (video.buffered.length > 0) {
@@ -261,7 +276,16 @@ export function VideoPlayer({
       video.removeEventListener("progress", onProgress)
       document.removeEventListener("fullscreenchange", onFullscreenChange)
     }
-  }, [])
+  }, [onProgressUpdate])
+
+  useEffect(() => {
+    const video = videoRef.current
+    return () => {
+      if (onProgressUpdate && video && video.duration > 0 && videoId) {
+        onProgressUpdate(video.currentTime, video.duration)
+      }
+    }
+  }, [onProgressUpdate, videoId])
 
   // Auto-play on open
   useEffect(() => {

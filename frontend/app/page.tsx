@@ -26,7 +26,15 @@ function StreamingApp() {
 
   const { isProfileSelected, showManageProfiles, setShowManageProfiles, editingProfile, setEditingProfile } =
     useProfile()
-  const { isPlayerOpen, playingVideo, closePlayer } = useVideo()
+  const {
+    isPlayerOpen,
+    playingVideo,
+    closePlayer,
+    continueWatching,
+    registerCatalogVideos,
+    updateWatchProgress,
+    getWatchProgress,
+  } = useVideo()
 
   useEffect(() => {
     let mounted = true
@@ -36,7 +44,9 @@ function StreamingApp() {
         setCatalogLoading(true)
         const movies = await fetchCatalog()
         if (!mounted) return
-        setCatalog(movies.map(toStreamVideo))
+        const streamVideos = movies.map(toStreamVideo)
+        setCatalog(streamVideos)
+        registerCatalogVideos(streamVideos)
         setCatalogError(null)
       } catch {
         if (!mounted) return
@@ -53,7 +63,7 @@ function StreamingApp() {
     return () => {
       mounted = false
     }
-  }, [])
+  }, [registerCatalogVideos])
 
   const featuredContent = useMemo(() => {
     if (catalog.length === 0) {
@@ -79,14 +89,19 @@ function StreamingApp() {
   const topRated = useMemo(() => catalog.slice(12, 24), [catalog])
   const newReleases = useMemo(() => catalog.slice(24, 36), [catalog])
   const actionMovies = useMemo(() => catalog.slice(36, 48), [catalog])
-  const continueWatching = useMemo(
+  const continueWatchingWithProgress = useMemo(
     () =>
-      catalog.slice(0, 6).map((video, index) => ({
-        ...video,
-        progress: 20 + index * 12,
-        episodeInfo: index % 2 === 0 ? `S1:E${index + 1}` : undefined,
-      })),
-    [catalog]
+      continueWatching
+        .map((video) => {
+          const progress = getWatchProgress(video.id)
+          if (!progress) return null
+          return {
+            ...video,
+            progress: progress.progress,
+          }
+        })
+        .filter((video): video is NonNullable<typeof video> => Boolean(video)),
+    [continueWatching, getWatchProgress]
   )
 
   if (!isProfileSelected && !showManageProfiles) {
@@ -117,7 +132,7 @@ function StreamingApp() {
       />
 
       <div className="-mt-32 relative z-10 space-y-2">
-        <ContinueWatchingRow videos={continueWatching} />
+        <ContinueWatchingRow videos={continueWatchingWithProgress} />
         <Top10Row title="Top 10 Movies" videos={top10Today} />
         <VideoRow title="Trending Now" videos={trendingNow} />
         <VideoRow title="Top Rated" videos={topRated.length > 0 ? topRated : trendingNow} />
@@ -147,8 +162,20 @@ function StreamingApp() {
         isOpen={isPlayerOpen}
         onClose={closePlayer}
         videoTitle={playingVideo?.title || ""}
+        videoId={playingVideo?.id}
         videoSrc={playingVideo?.videoSrc}
         posterImage={playingVideo?.thumbnail}
+        onProgressUpdate={(currentTime, duration) => {
+          if (!playingVideo || duration <= 0) return
+          const progress = Math.min(100, Math.max(0, (currentTime / duration) * 100))
+          updateWatchProgress(playingVideo.id, {
+            videoId: playingVideo.id,
+            currentTime,
+            duration,
+            progress,
+            lastWatched: new Date(),
+          })
+        }}
       />
     </main>
   )

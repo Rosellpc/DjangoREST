@@ -1,6 +1,17 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
+
+import {
+  ApiAuthError,
+  createMyListItem,
+  createWatchHistoryItem,
+  deleteMyListItem,
+  listMyListItems,
+  listWatchHistory,
+  updateWatchHistoryItem,
+} from "@/lib/subscriptions-api"
+import { getPosterByIndex, getVideoByIndex } from "@/lib/local-media"
 
 export interface Video {
   id: string
@@ -38,11 +49,13 @@ export interface CastMember {
 
 export interface WatchProgress {
   videoId: string
-  progress: number // 0-100
-  currentTime: number // seconds
-  duration: number // seconds
+  progress: number
+  currentTime: number
+  duration: number
   lastWatched: Date
 }
+
+const PROFILE_ID_STORAGE_KEY = "streamflix_profile_id"
 
 interface VideoContextType {
   myList: Video[]
@@ -60,19 +73,42 @@ interface VideoContextType {
   toggleDislike: (videoId: string) => void
   isLiked: (videoId: string) => boolean
   isDisliked: (videoId: string) => boolean
-  // Video player state
   isPlayerOpen: boolean
   playingVideo: Video | null
   openPlayer: (video: Video) => void
   closePlayer: () => void
-  // Watch history/progress
   watchProgress: Map<string, WatchProgress>
   updateWatchProgress: (videoId: string, progress: WatchProgress) => void
   getWatchProgress: (videoId: string) => WatchProgress | undefined
   continueWatching: Video[]
+  registerCatalogVideos: (videos: Video[]) => void
 }
 
 const VideoContext = createContext<VideoContextType | undefined>(undefined)
+
+function profileIdFromStorage(): number | null {
+  if (typeof window === "undefined") return null
+  const raw = window.localStorage.getItem(PROFILE_ID_STORAGE_KEY)
+  if (!raw) return null
+  const parsed = Number(raw)
+  return Number.isNaN(parsed) ? null : parsed
+}
+
+function toVideoFromFilmId(filmId: number, cached?: Video): Video {
+  if (cached) return cached
+  return {
+    id: String(filmId),
+    title: `Title #${filmId}`,
+    thumbnail: getPosterByIndex(filmId),
+    videoSrc: getVideoByIndex(filmId),
+    match: 80 + (filmId % 20),
+    year: "N/A",
+    duration: "N/A",
+    rating: "NR",
+    genres: ["Catalog"],
+    description: "No description available.",
+  }
+}
 
 export function VideoProvider({ children }: { children: ReactNode }) {
   const [myList, setMyList] = useState<Video[]>([])
@@ -84,82 +120,198 @@ export function VideoProvider({ children }: { children: ReactNode }) {
   const [playingVideo, setPlayingVideo] = useState<Video | null>(null)
   const [watchProgress, setWatchProgress] = useState<Map<string, WatchProgress>>(new Map())
   const [continueWatching, setContinueWatching] = useState<Video[]>([])
+  const [catalogById, setCatalogById] = useState<Map<string, Video>>(new Map())
+  const [myListItemIds, setMyListItemIds] = useState<Map<string, number>>(new Map())
+  const [historyItemIds, setHistoryItemIds] = useState<Map<string, number>>(new Map())
+  const [apiEnabled, setApiEnabled] = useState(false)
+  const [activeProfileId, setActiveProfileId] = useState<number | null>(() => profileIdFromStorage())
 
-  const addToMyList = useCallback((video: Video) => {
-    setMyList((prev) => {
-      if (prev.find((v) => v.id === video.id)) return prev
-      return [...prev, video]
-    })
-  }, [])
+  const loadRemoteState = useCallback(
+    async (profileId: number) => {
+      try {
+        const [remoteList, remoteHistory] = await Promise.all([listMyListItems(), listWatchHistory()])
+        setApiEnabled(true)
 
-  const removeFromMyList = useCallback((videoId: string) => {
-    setMyList((prev) => prev.filter((v) => v.id !== videoId))
-  }, [])
+        const nextListIds = new Map<string, number>()
+        const nextMyList = remoteList
+          .filter((item) => item.profile === profileId)
+          .map((item) => {
+            const videoId = String(item.film_id)
+            nextListIds.set(videoId, item.id)
+            return toVideoFromFilmId(item.film_id, catalogById.get(videoId))
+          })
 
-  const isInMyList = useCallback(
-    (videoId: string) => myList.some((v) => v.id === videoId),
-    [myList]
+        const nextHistoryIds = new Map<string, number>()
+        const nextWatchProgress = new Map<string, WatchProgress>()
+        const nextContinueWatching: Video[] = []
+
+        remoteHistory
+          .filter((item) => item.profile === profileId)
+          .forEach((item) => {
+            const videoId = String(item.film_id)
+            nextHistoryIds.set(videoId, item.id)
+            const durationGuess = Math.max(item.progress_seconds * 1.4, 120)
+            const progressPercent = item.completed
+              ? 100
+              : Math.min(95, Math.max(5, (item.progress_seconds / durationGuess) * 100))
+            nextWatchProgress.set(videoId, {
+              videoId,
+              currentTime: item.progress_seconds,
+              duration: durationGuess,
+              progress: progressPercent,
+              lastWatched: new Date(item.last_watched_at),
+            })
+
+            if (!item.completed && progressPercent >= 5) {
+              nextContinueWatching.push(toVideoFromFilmId(item.film_id, catalogById.get(videoId)))
+            }
+          })
+
+        setMyList(nextMyList)
+        setMyListItemIds(nextListIds)
+        setWatchProgress(nextWatchProgress)
+        setHistoryItemIds(nextHistoryIds)
+        setContinueWatching(nextContinueWatching)
+      } catch (error) {
+        if (error instanceof ApiAuthError) {
+          setApiEnabled(false)
+        }
+      }
+    },
+    [catalogById]
   )
 
-  const openVideoModal = useCallback((video: Video) => {
-    setSelectedVideo(video)
+  useEffect(() => {
+    if (activeProfileId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void loadRemoteState(activeProfileId)
+    }
+
+    const handler = (event: Event) => {
+      const customEvent = event as CustomEvent<{ profileId?: string }>
+      const rawId = customEvent.detail?.profileId
+      const parsed = Number(rawId)
+      const nextId = Number.isNaN(parsed) ? profileIdFromStorage() : parsed
+      setActiveProfileId(nextId)
+      if (nextId) {
+        void loadRemoteState(nextId)
+      }
+    }
+
+    window.addEventListener("streamflix-profile-changed", handler as EventListener)
+    return () => window.removeEventListener("streamflix-profile-changed", handler as EventListener)
+  }, [activeProfileId, loadRemoteState])
+
+  const registerCatalogVideos = useCallback((videos: Video[]) => {
+    setCatalogById((prev) => {
+      const next = new Map(prev)
+      videos.forEach((video) => next.set(video.id, video))
+      return next
+    })
+
+    setMyList((prev) => prev.map((video) => videos.find((candidate) => candidate.id === video.id) ?? video))
+    setContinueWatching((prev) =>
+      prev.map((video) => videos.find((candidate) => candidate.id === video.id) ?? video)
+    )
   }, [])
 
-  const closeVideoModal = useCallback(() => {
-    setSelectedVideo(null)
-  }, [])
+  const addToMyList = useCallback(
+    (video: Video) => {
+      setMyList((prev) => {
+        if (prev.some((item) => item.id === video.id)) return prev
+        return [...prev, video]
+      })
+
+      if (!apiEnabled || !activeProfileId) return
+      const filmId = Number(video.id)
+      if (Number.isNaN(filmId)) return
+
+      void (async () => {
+        try {
+          const created = await createMyListItem(activeProfileId, filmId)
+          setMyListItemIds((prev) => {
+            const next = new Map(prev)
+            next.set(video.id, created.id)
+            return next
+          })
+        } catch {
+          // Keep optimistic UI state.
+        }
+      })()
+    },
+    [activeProfileId, apiEnabled]
+  )
+
+  const removeFromMyList = useCallback(
+    (videoId: string) => {
+      setMyList((prev) => prev.filter((video) => video.id !== videoId))
+
+      if (!apiEnabled) return
+      const itemId = myListItemIds.get(videoId)
+      if (!itemId) return
+
+      void (async () => {
+        try {
+          await deleteMyListItem(itemId)
+          setMyListItemIds((prev) => {
+            const next = new Map(prev)
+            next.delete(videoId)
+            return next
+          })
+        } catch {
+          // Keep optimistic UI state.
+        }
+      })()
+    },
+    [apiEnabled, myListItemIds]
+  )
+
+  const isInMyList = useCallback((videoId: string) => myList.some((video) => video.id === videoId), [myList])
+
+  const openVideoModal = useCallback((video: Video) => setSelectedVideo(video), [])
+  const closeVideoModal = useCallback(() => setSelectedVideo(null), [])
 
   const toggleLike = useCallback((videoId: string) => {
     setLikedVideos((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(videoId)) {
-        newSet.delete(videoId)
+      const next = new Set(prev)
+      if (next.has(videoId)) {
+        next.delete(videoId)
       } else {
-        newSet.add(videoId)
-        // Remove from disliked if present
-        setDislikedVideos((d) => {
-          const newD = new Set(d)
-          newD.delete(videoId)
-          return newD
+        next.add(videoId)
+        setDislikedVideos((disliked) => {
+          const cleaned = new Set(disliked)
+          cleaned.delete(videoId)
+          return cleaned
         })
       }
-      return newSet
+      return next
     })
   }, [])
 
   const toggleDislike = useCallback((videoId: string) => {
     setDislikedVideos((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(videoId)) {
-        newSet.delete(videoId)
+      const next = new Set(prev)
+      if (next.has(videoId)) {
+        next.delete(videoId)
       } else {
-        newSet.add(videoId)
-        // Remove from liked if present
-        setLikedVideos((l) => {
-          const newL = new Set(l)
-          newL.delete(videoId)
-          return newL
+        next.add(videoId)
+        setLikedVideos((liked) => {
+          const cleaned = new Set(liked)
+          cleaned.delete(videoId)
+          return cleaned
         })
       }
-      return newSet
+      return next
     })
   }, [])
 
-  const isLiked = useCallback(
-    (videoId: string) => likedVideos.has(videoId),
-    [likedVideos]
-  )
+  const isLiked = useCallback((videoId: string) => likedVideos.has(videoId), [likedVideos])
+  const isDisliked = useCallback((videoId: string) => dislikedVideos.has(videoId), [dislikedVideos])
 
-  const isDisliked = useCallback(
-    (videoId: string) => dislikedVideos.has(videoId),
-    [dislikedVideos]
-  )
-
-  // Video player functions
   const openPlayer = useCallback((video: Video) => {
     setPlayingVideo(video)
     setIsPlayerOpen(true)
-    setSelectedVideo(null) // Close modal when opening player
+    setSelectedVideo(null)
   }, [])
 
   const closePlayer = useCallback(() => {
@@ -167,71 +319,122 @@ export function VideoProvider({ children }: { children: ReactNode }) {
     setPlayingVideo(null)
   }, [])
 
-  // Watch progress functions
-  const updateWatchProgress = useCallback((videoId: string, progress: WatchProgress) => {
-    setWatchProgress((prev) => {
-      const newMap = new Map(prev)
-      newMap.set(videoId, progress)
-      return newMap
-    })
-    
-    // Update continue watching list
-    setContinueWatching((prev) => {
-      // Only add if progress is between 5% and 95%
-      if (progress.progress >= 5 && progress.progress < 95) {
-        const existingIndex = prev.findIndex((v) => v.id === videoId)
-        if (existingIndex === -1) {
-          // Need to find the video from somewhere - will be set by the caller
-          return prev
+  const updateWatchProgress = useCallback(
+    (videoId: string, progress: WatchProgress) => {
+      setWatchProgress((prev) => {
+        const next = new Map(prev)
+        next.set(videoId, progress)
+        return next
+      })
+
+      const sourceVideo =
+        catalogById.get(videoId) ??
+        myList.find((video) => video.id === videoId) ??
+        continueWatching.find((video) => video.id === videoId) ??
+        toVideoFromFilmId(Number(videoId))
+
+      setContinueWatching((prev) => {
+        if (progress.progress >= 95) {
+          return prev.filter((video) => video.id !== videoId)
         }
-        // Move to front
-        const video = prev[existingIndex]
-        const newList = prev.filter((v) => v.id !== videoId)
-        return [video, ...newList]
-      } else if (progress.progress >= 95) {
-        // Remove from continue watching when finished
-        return prev.filter((v) => v.id !== videoId)
+        if (progress.progress < 5) return prev
+        const existing = prev.filter((video) => video.id !== videoId)
+        return [sourceVideo, ...existing]
+      })
+
+      if (!apiEnabled || !activeProfileId) return
+      const filmId = Number(videoId)
+      if (Number.isNaN(filmId)) return
+
+      const payload = {
+        progress_seconds: Math.round(progress.currentTime),
+        completed: progress.progress >= 95,
+        last_watched_at: progress.lastWatched.toISOString(),
       }
-      return prev
-    })
-  }, [])
 
-  const getWatchProgress = useCallback(
-    (videoId: string) => watchProgress.get(videoId),
-    [watchProgress]
+      void (async () => {
+        try {
+          const existingHistoryId = historyItemIds.get(videoId)
+          if (existingHistoryId) {
+            await updateWatchHistoryItem(existingHistoryId, payload)
+            return
+          }
+
+          const created = await createWatchHistoryItem({
+            profile: activeProfileId,
+            film_id: filmId,
+            ...payload,
+          })
+          setHistoryItemIds((prev) => {
+            const next = new Map(prev)
+            next.set(videoId, created.id)
+            return next
+          })
+        } catch {
+          // Keep optimistic UI state.
+        }
+      })()
+    },
+    [activeProfileId, apiEnabled, catalogById, continueWatching, historyItemIds, myList]
   )
 
-  return (
-    <VideoContext.Provider
-      value={{
-        myList,
-        addToMyList,
-        removeFromMyList,
-        isInMyList,
-        selectedVideo,
-        openVideoModal,
-        closeVideoModal,
-        searchQuery,
-        setSearchQuery,
-        likedVideos,
-        dislikedVideos,
-        toggleLike,
-        toggleDislike,
-        isLiked,
-        isDisliked,
-        isPlayerOpen,
-        playingVideo,
-        openPlayer,
-        closePlayer,
-        watchProgress,
-        updateWatchProgress,
-        getWatchProgress,
-        continueWatching,
-      }}
-    >
-      {children}
-    </VideoContext.Provider>
+  const getWatchProgress = useCallback((videoId: string) => watchProgress.get(videoId), [watchProgress])
+
+  const value = useMemo<VideoContextType>(
+    () => ({
+      myList,
+      addToMyList,
+      removeFromMyList,
+      isInMyList,
+      selectedVideo,
+      openVideoModal,
+      closeVideoModal,
+      searchQuery,
+      setSearchQuery,
+      likedVideos,
+      dislikedVideos,
+      toggleLike,
+      toggleDislike,
+      isLiked,
+      isDisliked,
+      isPlayerOpen,
+      playingVideo,
+      openPlayer,
+      closePlayer,
+      watchProgress,
+      updateWatchProgress,
+      getWatchProgress,
+      continueWatching,
+      registerCatalogVideos,
+    }),
+    [
+      myList,
+      addToMyList,
+      removeFromMyList,
+      isInMyList,
+      selectedVideo,
+      openVideoModal,
+      closeVideoModal,
+      searchQuery,
+      likedVideos,
+      dislikedVideos,
+      toggleLike,
+      toggleDislike,
+      isLiked,
+      isDisliked,
+      isPlayerOpen,
+      playingVideo,
+      openPlayer,
+      closePlayer,
+      watchProgress,
+      updateWatchProgress,
+      getWatchProgress,
+      continueWatching,
+      registerCatalogVideos,
+    ]
   )
+
+  return <VideoContext.Provider value={value}>{children}</VideoContext.Provider>
 }
 
 export function useVideo() {

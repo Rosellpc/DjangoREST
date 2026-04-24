@@ -1,6 +1,18 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
+
+import {
+  ApiAuthError,
+  createProfile,
+  createUserSubscription,
+  deleteProfile as deleteProfileRequest,
+  listPlans,
+  listProfiles,
+  listUserSubscriptions,
+  updateProfile as updateProfileRequest,
+  type ApiProfile,
+} from "@/lib/subscriptions-api"
 
 export interface Profile {
   id: string
@@ -16,6 +28,20 @@ export interface Profile {
   gameHandle?: string
   createdAt: Date
 }
+
+type ProfilePreferences = Record<
+  string,
+  Partial<
+    Pick<
+      Profile,
+      "avatarUrl" | "maturityRating" | "language" | "autoplayNextEpisode" | "autoplayPreviews" | "hasPin" | "pin" | "gameHandle"
+    >
+  >
+>
+
+const PROFILE_ID_STORAGE_KEY = "streamflix_profile_id"
+const PROFILE_PREFS_STORAGE_KEY = "streamflix_profile_preferences"
+const MAX_PROFILES_FALLBACK = 5
 
 export const AVATAR_OPTIONS = [
   "/avatars/avatar-red.png",
@@ -62,7 +88,7 @@ export const MATURITY_RATINGS = [
 
 const DEFAULT_PROFILES: Profile[] = [
   {
-    id: "1",
+    id: "local-default",
     name: "User",
     avatarUrl: "",
     isKids: false,
@@ -96,7 +122,45 @@ interface ProfileContextType {
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined)
 
-const MAX_PROFILES = 5
+function readProfilePreferences(): ProfilePreferences {
+  if (typeof window === "undefined") return {}
+  try {
+    const raw = window.localStorage.getItem(PROFILE_PREFS_STORAGE_KEY)
+    if (!raw) return {}
+    return JSON.parse(raw) as ProfilePreferences
+  } catch {
+    return {}
+  }
+}
+
+function writeProfilePreferences(value: ProfilePreferences) {
+  if (typeof window === "undefined") return
+  window.localStorage.setItem(PROFILE_PREFS_STORAGE_KEY, JSON.stringify(value))
+}
+
+function mapApiProfile(api: ApiProfile, prefs: ProfilePreferences): Profile {
+  const custom = prefs[String(api.id)] ?? {}
+  return {
+    id: String(api.id),
+    name: api.name,
+    avatarUrl: custom.avatarUrl ?? "",
+    isKids: api.is_kids,
+    maturityRating: custom.maturityRating ?? (api.is_kids ? "G" : "NC-17"),
+    language: custom.language ?? "en",
+    autoplayNextEpisode: custom.autoplayNextEpisode ?? true,
+    autoplayPreviews: custom.autoplayPreviews ?? true,
+    hasPin: custom.hasPin ?? false,
+    pin: custom.pin,
+    gameHandle: custom.gameHandle,
+    createdAt: new Date(api.created_at),
+  }
+}
+
+function notifyProfileChanged(profileId: string) {
+  if (typeof window === "undefined") return
+  window.localStorage.setItem(PROFILE_ID_STORAGE_KEY, profileId)
+  window.dispatchEvent(new CustomEvent("streamflix-profile-changed", { detail: { profileId } }))
+}
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const [profiles, setProfiles] = useState<Profile[]>(DEFAULT_PROFILES)
@@ -104,44 +168,154 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [isProfileSelected, setIsProfileSelected] = useState(false)
   const [showManageProfiles, setShowManageProfiles] = useState(false)
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null)
+  const [maxProfiles, setMaxProfiles] = useState(MAX_PROFILES_FALLBACK)
+  const [apiEnabled, setApiEnabled] = useState(false)
 
-  const addProfile = useCallback((profileData: Omit<Profile, "id" | "createdAt">) => {
-    if (profiles.length >= MAX_PROFILES) return
+  useEffect(() => {
+    let mounted = true
 
-    const newProfile: Profile = {
-      ...profileData,
-      id: Date.now().toString(),
-      createdAt: new Date(),
+    const bootstrap = async () => {
+      try {
+        const plans = await listPlans()
+        const subscriptions = await listUserSubscriptions()
+        let activeSubscription = subscriptions[0]
+
+        if (!activeSubscription && plans.length > 0) {
+          activeSubscription = await createUserSubscription(plans[0].id)
+        }
+        if (!activeSubscription) return
+
+        const fetchedProfiles = await listProfiles()
+        const ensuredProfiles =
+          fetchedProfiles.length > 0 ? fetchedProfiles : [await createProfile({ name: "User" })]
+
+        const preferences = readProfilePreferences()
+        const mappedProfiles = ensuredProfiles.map((profile) => mapApiProfile(profile, preferences))
+        if (!mounted) return
+
+        setApiEnabled(true)
+        setMaxProfiles(activeSubscription.plan.max_profiles)
+        setProfiles(mappedProfiles)
+
+        const remembered = window.localStorage.getItem(PROFILE_ID_STORAGE_KEY)
+        const selected = mappedProfiles.find((profile) => profile.id === remembered) ?? mappedProfiles[0] ?? null
+
+        setCurrentProfile(selected)
+        setIsProfileSelected(Boolean(selected))
+        if (selected) notifyProfileChanged(selected.id)
+      } catch (error) {
+        if (!mounted) return
+        setApiEnabled(false)
+        setProfiles(DEFAULT_PROFILES)
+        if (!(error instanceof ApiAuthError)) {
+          console.error("Profile bootstrap failed:", error)
+        }
+      }
     }
-    setProfiles((prev) => [...prev, newProfile])
-  }, [profiles.length])
 
-  const updateProfile = useCallback((id: string, updates: Partial<Profile>) => {
-    setProfiles((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
-    )
-    if (currentProfile?.id === id) {
-      setCurrentProfile((prev) => prev ? { ...prev, ...updates } : null)
+    void bootstrap()
+    return () => {
+      mounted = false
     }
-  }, [currentProfile?.id])
+  }, [])
 
-  const deleteProfile = useCallback((id: string) => {
-    if (profiles.length <= 1) return
-    setProfiles((prev) => prev.filter((p) => p.id !== id))
-    if (currentProfile?.id === id) {
-      setCurrentProfile(null)
-      setIsProfileSelected(false)
+  const persistLocalProfilePreference = useCallback((id: string, updates: Partial<Profile>) => {
+    const current = readProfilePreferences()
+    current[id] = {
+      ...current[id],
+      avatarUrl: updates.avatarUrl ?? current[id]?.avatarUrl,
+      maturityRating: updates.maturityRating ?? current[id]?.maturityRating,
+      language: updates.language ?? current[id]?.language,
+      autoplayNextEpisode: updates.autoplayNextEpisode ?? current[id]?.autoplayNextEpisode,
+      autoplayPreviews: updates.autoplayPreviews ?? current[id]?.autoplayPreviews,
+      hasPin: updates.hasPin ?? current[id]?.hasPin,
+      pin: updates.pin ?? current[id]?.pin,
+      gameHandle: updates.gameHandle ?? current[id]?.gameHandle,
     }
-  }, [profiles.length, currentProfile?.id])
+    writeProfilePreferences(current)
+  }, [])
 
-  const selectProfile = useCallback((id: string) => {
-    const profile = profiles.find((p) => p.id === id)
-    if (profile) {
-      setCurrentProfile(profile)
+  const addProfile = useCallback(
+    (profileData: Omit<Profile, "id" | "createdAt">) => {
+      if (profiles.length >= maxProfiles) return
+
+      if (!apiEnabled) {
+        const localId = `local-${Date.now()}`
+        setProfiles((prev) => [
+          ...prev,
+          {
+            ...profileData,
+            id: localId,
+            createdAt: new Date(),
+          },
+        ])
+        persistLocalProfilePreference(localId, profileData)
+        return
+      }
+
+      void (async () => {
+        const created = await createProfile({
+          name: profileData.name,
+          is_kids: profileData.isKids,
+          avatar_key: "",
+        })
+        const profile = mapApiProfile(created, readProfilePreferences())
+        setProfiles((prev) => [...prev, profile])
+        persistLocalProfilePreference(profile.id, profileData)
+      })()
+    },
+    [apiEnabled, maxProfiles, persistLocalProfilePreference, profiles.length]
+  )
+
+  const updateProfile = useCallback(
+    (id: string, updates: Partial<Profile>) => {
+      setProfiles((prev) => prev.map((profile) => (profile.id === id ? { ...profile, ...updates } : profile)))
+      if (currentProfile?.id === id) {
+        setCurrentProfile((prev) => (prev ? { ...prev, ...updates } : null))
+      }
+      persistLocalProfilePreference(id, updates)
+
+      if (!apiEnabled) return
+      const numericId = Number(id)
+      if (Number.isNaN(numericId)) return
+
+      void updateProfileRequest(numericId, {
+        name: updates.name,
+        is_kids: updates.isKids,
+      })
+    },
+    [apiEnabled, currentProfile?.id, persistLocalProfilePreference]
+  )
+
+  const deleteProfile = useCallback(
+    (id: string) => {
+      if (profiles.length <= 1) return
+
+      setProfiles((prev) => prev.filter((profile) => profile.id !== id))
+      if (currentProfile?.id === id) {
+        setCurrentProfile(null)
+        setIsProfileSelected(false)
+      }
+
+      if (!apiEnabled) return
+      const numericId = Number(id)
+      if (Number.isNaN(numericId)) return
+      void deleteProfileRequest(numericId)
+    },
+    [apiEnabled, currentProfile?.id, profiles.length]
+  )
+
+  const selectProfile = useCallback(
+    (id: string) => {
+      const selected = profiles.find((profile) => profile.id === id)
+      if (!selected) return
+      setCurrentProfile(selected)
       setIsProfileSelected(true)
       setShowManageProfiles(false)
-    }
-  }, [profiles])
+      notifyProfileChanged(id)
+    },
+    [profiles]
+  )
 
   const switchProfile = useCallback(() => {
     setCurrentProfile(null)
@@ -149,24 +323,29 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     setShowManageProfiles(false)
   }, [])
 
-  const verifyPin = useCallback((id: string, pin: string) => {
-    const profile = profiles.find((p) => p.id === id)
-    return profile?.pin === pin
-  }, [profiles])
+  const verifyPin = useCallback(
+    (id: string, pin: string) => {
+      const profile = profiles.find((candidate) => candidate.id === id)
+      return profile?.pin === pin
+    },
+    [profiles]
+  )
 
-  const setPin = useCallback((id: string, pin: string) => {
-    setProfiles((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, hasPin: true, pin } : p))
-    )
-  }, [])
+  const setPin = useCallback(
+    (id: string, pin: string) => {
+      updateProfile(id, { hasPin: true, pin })
+    },
+    [updateProfile]
+  )
 
-  const removePin = useCallback((id: string) => {
-    setProfiles((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, hasPin: false, pin: undefined } : p))
-    )
-  }, [])
+  const removePin = useCallback(
+    (id: string) => {
+      updateProfile(id, { hasPin: false, pin: undefined })
+    },
+    [updateProfile]
+  )
 
-  const canAddMoreProfiles = profiles.length < MAX_PROFILES
+  const canAddMoreProfiles = useMemo(() => profiles.length < maxProfiles, [maxProfiles, profiles.length])
 
   return (
     <ProfileContext.Provider

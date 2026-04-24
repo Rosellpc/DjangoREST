@@ -274,6 +274,7 @@ function TitleContent({ id }: { id: string }) {
     playingVideo,
     openPlayer,
     closePlayer,
+    updateWatchProgress,
   } = useVideo()
 
   const inList = isInMyList(titleData.id)
@@ -720,8 +721,20 @@ function TitleContent({ id }: { id: string }) {
         isOpen={isPlayerOpen}
         onClose={closePlayer}
         videoTitle={playingVideo?.title || titleData.title}
+        videoId={playingVideo?.id}
         videoSrc={playingVideo?.videoSrc}
         posterImage={playingVideo?.thumbnail || titleData.backgroundImage}
+        onProgressUpdate={(currentTime, duration) => {
+          if (!playingVideo || duration <= 0) return
+          const progress = Math.min(100, Math.max(0, (currentTime / duration) * 100))
+          updateWatchProgress(playingVideo.id, {
+            videoId: playingVideo.id,
+            currentTime,
+            duration,
+            progress,
+            lastWatched: new Date(),
+          })
+        }}
       />
     </main>
   )

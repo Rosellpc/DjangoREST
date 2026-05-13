@@ -11,6 +11,14 @@ class SubscriptionStatus(models.TextChoices):
     CANCELED = "canceled", "Canceled"
 
 
+class MaturityRating(models.TextChoices):
+    G = "G", "All Ages"
+    PG = "PG", "PG"
+    PG_13 = "PG-13", "PG-13"
+    R = "R", "R"
+    NC_17 = "NC-17", "NC-17"
+
+
 class SubscriptionPlan(models.Model):
     code = models.SlugField(unique=True)
     name = models.CharField(max_length=80)
@@ -47,6 +55,10 @@ class UserSubscription(models.Model):
     starts_at = models.DateTimeField(default=timezone.now)
     ends_at = models.DateTimeField(blank=True, null=True)
     auto_renew = models.BooleanField(default=True)
+    payment_provider = models.CharField(max_length=40, blank=True)
+    payment_brand = models.CharField(max_length=30, blank=True)
+    payment_last4 = models.CharField(max_length=4, blank=True)
+    billing_email = models.EmailField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -66,6 +78,17 @@ class Profile(models.Model):
     name = models.CharField(max_length=40)
     is_kids = models.BooleanField(default=False)
     avatar_key = models.CharField(max_length=100, blank=True)
+    maturity_rating = models.CharField(
+        max_length=10,
+        choices=MaturityRating.choices,
+        default=MaturityRating.NC_17,
+    )
+    language = models.CharField(max_length=10, default="en")
+    autoplay_next_episode = models.BooleanField(default=True)
+    autoplay_previews = models.BooleanField(default=True)
+    has_pin = models.BooleanField(default=False)
+    pin_code = models.CharField(max_length=4, blank=True)
+    game_handle = models.CharField(max_length=16, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

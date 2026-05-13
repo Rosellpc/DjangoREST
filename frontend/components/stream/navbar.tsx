@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Search, Bell, ChevronDown, User, Settings, HelpCircle, LogOut, Pencil } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from "@/lib/auth-context"
 import { useVideo } from "@/lib/video-context"
 import { useProfile, AVATAR_COLORS } from "@/lib/profile-context"
 
@@ -15,6 +16,7 @@ export function Navbar({ onSearchClick, onMyListClick }: NavbarProps) {
   const [isScrolled, setIsScrolled] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
+  const { signOut } = useAuth()
   const { myList } = useVideo()
   const { 
     profiles, 
@@ -232,7 +234,13 @@ export function Navbar({ onSearchClick, onMyListClick }: NavbarProps) {
                 </button>
               </div>
               <div className="border-t border-border py-1">
-                <button className="w-full px-4 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-3 text-primary">
+                <button
+                  onClick={() => {
+                    setShowProfileMenu(false)
+                    void signOut()
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-muted transition-colors flex items-center gap-3 text-primary"
+                >
                   <LogOut className="w-4 h-4" />
                   Sign Out of StreamFlix
                 </button>

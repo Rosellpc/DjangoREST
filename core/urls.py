@@ -25,6 +25,8 @@ from rest_framework_simplejwt.views import (
     TokenVerifyView,
 )
 
+from apps.content.auth_views import RegisterView
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
@@ -34,6 +36,7 @@ urlpatterns = [
         name="swagger-ui",
     ),
     path("api/", include("apps.content.urls")),
+    path("api/auth/register/", RegisterView.as_view(), name="auth_register"),
     path("api/subscriptions/", include("apps.subscriptions.urls")),
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),

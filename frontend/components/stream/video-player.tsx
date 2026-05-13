@@ -28,6 +28,8 @@ interface VideoPlayerProps {
   onProgressUpdate?: (currentTime: number, duration: number) => void
 }
 
+const PROGRESS_SYNC_INTERVAL_MS = 15000
+
 export function VideoPlayer({
   isOpen,
   onClose,
@@ -42,6 +44,7 @@ export function VideoPlayer({
   const progressRef = useRef<HTMLDivElement>(null)
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const lastProgressSyncRef = useRef(0)
+  const onProgressUpdateRef = useRef(onProgressUpdate)
 
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -58,6 +61,10 @@ export function VideoPlayer({
   const [isHoveringProgress, setIsHoveringProgress] = useState(false)
   const [hoverTime, setHoverTime] = useState(0)
   const [hoverPosition, setHoverPosition] = useState(0)
+
+  useEffect(() => {
+    onProgressUpdateRef.current = onProgressUpdate
+  }, [onProgressUpdate])
 
   // Format time as MM:SS or HH:MM:SS
   const formatTime = (seconds: number) => {
@@ -164,6 +171,18 @@ export function VideoPlayer({
     }
   }, [duration])
 
+  const syncProgress = useCallback((force = false) => {
+    const video = videoRef.current
+    const sync = onProgressUpdateRef.current
+    if (!sync || !video || video.duration <= 0 || !Number.isFinite(video.duration)) return
+
+    const now = Date.now()
+    if (!force && now - lastProgressSyncRef.current < PROGRESS_SYNC_INTERVAL_MS) return
+
+    sync(video.currentTime, video.duration)
+    lastProgressSyncRef.current = now
+  }, [])
+
   // Playback rate
   const changePlaybackRate = (rate: number) => {
     if (videoRef.current) {
@@ -238,20 +257,16 @@ export function VideoPlayer({
     if (!video) return
 
     const onPlay = () => setIsPlaying(true)
-    const onPause = () => setIsPlaying(false)
+    const onPause = () => {
+      setIsPlaying(false)
+      syncProgress(true)
+    }
     const onTimeUpdate = () => {
       setCurrentTime(video.currentTime)
-      const now = Date.now()
-      if (
-        onProgressUpdate &&
-        video.duration > 0 &&
-        now - lastProgressSyncRef.current >= 5000
-      ) {
-        onProgressUpdate(video.currentTime, video.duration)
-        lastProgressSyncRef.current = now
-      }
+      syncProgress()
     }
     const onDurationChange = () => setDuration(video.duration)
+    const onEnded = () => syncProgress(true)
     const onProgress = () => {
       if (video.buffered.length > 0) {
         setBuffered(video.buffered.end(video.buffered.length - 1))
@@ -265,6 +280,7 @@ export function VideoPlayer({
     video.addEventListener("pause", onPause)
     video.addEventListener("timeupdate", onTimeUpdate)
     video.addEventListener("durationchange", onDurationChange)
+    video.addEventListener("ended", onEnded)
     video.addEventListener("progress", onProgress)
     document.addEventListener("fullscreenchange", onFullscreenChange)
 
@@ -273,19 +289,17 @@ export function VideoPlayer({
       video.removeEventListener("pause", onPause)
       video.removeEventListener("timeupdate", onTimeUpdate)
       video.removeEventListener("durationchange", onDurationChange)
+      video.removeEventListener("ended", onEnded)
       video.removeEventListener("progress", onProgress)
       document.removeEventListener("fullscreenchange", onFullscreenChange)
     }
-  }, [onProgressUpdate])
+  }, [syncProgress])
 
   useEffect(() => {
-    const video = videoRef.current
     return () => {
-      if (onProgressUpdate && video && video.duration > 0 && videoId) {
-        onProgressUpdate(video.currentTime, video.duration)
-      }
+      syncProgress(true)
     }
-  }, [onProgressUpdate, videoId])
+  }, [syncProgress, videoId])
 
   // Auto-play on open
   useEffect(() => {

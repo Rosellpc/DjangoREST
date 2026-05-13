@@ -7,7 +7,7 @@ from .models import MyListItem, Profile, SubscriptionPlan, UserSubscription, Wat
 @pytest.fixture
 def plan():
     return SubscriptionPlan.objects.create(
-        code="basic",
+        code="test-basic",
         name="Basic",
         monthly_price="9.99",
         max_profiles=2,
@@ -26,22 +26,53 @@ def profile(active_subscription):
 
 
 @pytest.mark.django_db
+def test_default_subscription_plans_are_seeded():
+    assert SubscriptionPlan.objects.filter(code="basic", is_active=True).exists()
+    assert SubscriptionPlan.objects.filter(code="standard", is_active=True).exists()
+    assert SubscriptionPlan.objects.filter(code="premium", is_active=True).exists()
+
+
+@pytest.mark.django_db
 def test_subscription_plan_list_is_public(api_client, plan):
     response = api_client.get(reverse("subscription-plans-list"))
     assert response.status_code == 200
-    assert response.data["results"][0]["code"] == plan.code
+    codes = {item["code"] for item in response.data["results"]}
+    assert plan.code in codes
 
 
 @pytest.mark.django_db
 def test_user_can_create_own_subscription(authenticated_api_client, plan, user):
     response = authenticated_api_client.post(
         reverse("user-subscriptions-list"),
-        {"plan_id": plan.id, "status": "active"},
+        {
+            "plan_id": plan.id,
+            "status": "active",
+            "payment_provider": "simulated",
+            "payment_brand": "Visa",
+            "payment_last4": "4242",
+            "billing_email": "testuser@example.com",
+        },
         format="json",
     )
     assert response.status_code == 201
     assert response.data["plan"]["code"] == plan.code
+    assert response.data["payment_provider"] == "simulated"
+    assert response.data["payment_brand"] == "Visa"
+    assert response.data["payment_last4"] == "4242"
+    assert response.data["billing_email"] == "testuser@example.com"
     assert UserSubscription.objects.filter(user=user).count() == 1
+
+
+@pytest.mark.django_db
+def test_subscription_rejects_invalid_payment_last4(authenticated_api_client, plan):
+    response = authenticated_api_client.post(
+        reverse("user-subscriptions-list"),
+        {"plan_id": plan.id, "payment_last4": "abcd"},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert "payment_last4" in response.data
 
 
 @pytest.mark.django_db
@@ -64,6 +95,34 @@ def test_profile_create_requires_existing_subscription(authenticated_api_client)
     )
     assert response.status_code == 400
     assert "create a subscription" in str(response.data).lower()
+
+
+@pytest.mark.django_db
+def test_profile_preferences_are_persisted(authenticated_api_client, active_subscription):
+    response = authenticated_api_client.post(
+        reverse("profiles-list"),
+        {
+            "name": "Main",
+            "is_kids": False,
+            "maturity_rating": "PG-13",
+            "language": "es",
+            "autoplay_next_episode": False,
+            "autoplay_previews": False,
+            "has_pin": True,
+            "pin": "1234",
+            "game_handle": "mainhero",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 201
+    assert response.data["maturity_rating"] == "PG-13"
+    assert response.data["language"] == "es"
+    assert response.data["autoplay_next_episode"] is False
+    assert response.data["autoplay_previews"] is False
+    assert response.data["has_pin"] is True
+    assert response.data["pin"] == "1234"
+    assert response.data["game_handle"] == "mainhero"
 
 
 @pytest.mark.django_db

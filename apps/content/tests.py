@@ -39,3 +39,7 @@ def test_jwt_urls_are_registered():
     assert reverse("token_refresh") == "/api/token/refresh/"
     assert reverse("token_verify") == "/api/token/verify/"
     assert reverse("token_blacklist") == "/api/token/blacklist/"
+
+
+def test_auth_register_url_is_registered():
+    assert reverse("auth_register") == "/api/auth/register/"

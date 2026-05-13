@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Navbar } from "@/components/stream/navbar"
 import { HeroBanner } from "@/components/stream/hero-banner"
 import { VideoRow } from "@/components/stream/video-row"
@@ -12,6 +12,9 @@ import { SearchModal } from "@/components/stream/search-modal"
 import { MyListModal } from "@/components/stream/my-list-modal"
 import { ProfileSelector } from "@/components/stream/profile-selector"
 import { ProfileEditor } from "@/components/stream/profile-editor"
+import { AuthScreen } from "@/components/stream/auth-screen"
+import { SubscriptionScreen } from "@/components/stream/subscription-screen"
+import { AuthProvider, useAuth } from "@/lib/auth-context"
 import { VideoProvider, useVideo } from "@/lib/video-context"
 import { ProfileProvider, useProfile } from "@/lib/profile-context"
 import { fetchCatalog, toStreamVideo, type StreamVideo } from "@/lib/catalog-api"
@@ -181,12 +184,44 @@ function StreamingApp() {
   )
 }
 
-export default function Home() {
+function AuthenticatedApp() {
+  const { isAuthenticated, isLoading, sessionVersion } = useAuth()
+  const [subscriptionReadyForSession, setSubscriptionReadyForSession] = useState<number | null>(null)
+  const subscriptionReady = subscriptionReadyForSession === sessionVersion
+  const handleSubscriptionReady = useCallback(
+    () => setSubscriptionReadyForSession(sessionVersion),
+    [sessionVersion]
+  )
+
+  if (isLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
+        Loading session...
+      </main>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <AuthScreen />
+  }
+
+  if (!subscriptionReady) {
+    return <SubscriptionScreen onReady={handleSubscriptionReady} />
+  }
+
   return (
     <ProfileProvider>
       <VideoProvider>
         <StreamingApp />
       </VideoProvider>
     </ProfileProvider>
+  )
+}
+
+export default function Home() {
+  return (
+    <AuthProvider>
+      <AuthenticatedApp />
+    </AuthProvider>
   )
 }

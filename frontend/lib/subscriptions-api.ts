@@ -1,3 +1,6 @@
+import { refreshAccessToken } from "@/lib/auth-api"
+import { getAccessToken } from "@/lib/auth-tokens"
+
 export class ApiAuthError extends Error {
   constructor(message = "Missing or invalid auth token") {
     super(message)
@@ -30,6 +33,10 @@ export interface ApiSubscription {
   starts_at: string
   ends_at: string | null
   auto_renew: boolean
+  payment_provider: string
+  payment_brand: string
+  payment_last4: string
+  billing_email: string
   created_at: string
   updated_at: string
 }
@@ -40,6 +47,13 @@ export interface ApiProfile {
   name: string
   is_kids: boolean
   avatar_key: string
+  maturity_rating: "G" | "PG" | "PG-13" | "R" | "NC-17"
+  language: string
+  autoplay_next_episode: boolean
+  autoplay_previews: boolean
+  has_pin: boolean
+  pin: string
+  game_handle: string
   created_at: string
   updated_at: string
 }
@@ -62,15 +76,6 @@ export interface ApiWatchHistoryItem {
   updated_at: string
 }
 
-function getAccessToken(): string | null {
-  if (typeof window === "undefined") return null
-  return (
-    window.localStorage.getItem("streamflix_access_token") ||
-    window.localStorage.getItem("access_token") ||
-    window.localStorage.getItem("jwt_access_token")
-  )
-}
-
 async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = getAccessToken()
   if (!token) throw new ApiAuthError()
@@ -81,11 +86,23 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
     headers.set("content-type", "application/json")
   }
 
-  const response = await fetch(`/api/backend/${path.replace(/^\//, "")}`, {
+  let response = await fetch(`/api/backend/${path.replace(/^\//, "")}`, {
     ...init,
     headers,
     cache: "no-store",
   })
+
+  if (response.status === 401) {
+    const refreshed = await refreshAccessToken()
+    if (refreshed) {
+      headers.set("authorization", `Bearer ${refreshed}`)
+      response = await fetch(`/api/backend/${path.replace(/^\//, "")}`, {
+        ...init,
+        headers,
+        cache: "no-store",
+      })
+    }
+  }
 
   if (response.status === 401 || response.status === 403) {
     throw new ApiAuthError("Unauthorized")
@@ -112,10 +129,18 @@ export async function listUserSubscriptions(): Promise<ApiSubscription[]> {
   return payload.results ?? []
 }
 
-export async function createUserSubscription(planId: number): Promise<ApiSubscription> {
+export async function createUserSubscription(
+  planId: number,
+  billing: Partial<{
+    payment_provider: string
+    payment_brand: string
+    payment_last4: string
+    billing_email: string
+  }> = {}
+): Promise<ApiSubscription> {
   return apiFetch<ApiSubscription>("subscriptions/subscriptions/", {
     method: "POST",
-    body: JSON.stringify({ plan_id: planId, status: "active" }),
+    body: JSON.stringify({ plan_id: planId, status: "active", ...billing }),
   })
 }
 
@@ -128,6 +153,13 @@ export async function createProfile(payload: {
   name: string
   is_kids?: boolean
   avatar_key?: string
+  maturity_rating?: ApiProfile["maturity_rating"]
+  language?: string
+  autoplay_next_episode?: boolean
+  autoplay_previews?: boolean
+  has_pin?: boolean
+  pin?: string
+  game_handle?: string
 }): Promise<ApiProfile> {
   return apiFetch<ApiProfile>("subscriptions/profiles/", {
     method: "POST",
@@ -137,7 +169,18 @@ export async function createProfile(payload: {
 
 export async function updateProfile(
   profileId: number,
-  payload: Partial<{ name: string; is_kids: boolean; avatar_key: string }>
+  payload: Partial<{
+    name: string
+    is_kids: boolean
+    avatar_key: string
+    maturity_rating: ApiProfile["maturity_rating"]
+    language: string
+    autoplay_next_episode: boolean
+    autoplay_previews: boolean
+    has_pin: boolean
+    pin: string
+    game_handle: string
+  }>
 ): Promise<ApiProfile> {
   return apiFetch<ApiProfile>(`subscriptions/profiles/${profileId}/`, {
     method: "PATCH",

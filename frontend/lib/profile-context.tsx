@@ -5,9 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import {
   ApiAuthError,
   createProfile,
-  createUserSubscription,
   deleteProfile as deleteProfileRequest,
-  listPlans,
   listProfiles,
   listUserSubscriptions,
   updateProfile as updateProfileRequest,
@@ -29,18 +27,7 @@ export interface Profile {
   createdAt: Date
 }
 
-type ProfilePreferences = Record<
-  string,
-  Partial<
-    Pick<
-      Profile,
-      "avatarUrl" | "maturityRating" | "language" | "autoplayNextEpisode" | "autoplayPreviews" | "hasPin" | "pin" | "gameHandle"
-    >
-  >
->
-
 const PROFILE_ID_STORAGE_KEY = "streamflix_profile_id"
-const PROFILE_PREFS_STORAGE_KEY = "streamflix_profile_preferences"
 const MAX_PROFILES_FALLBACK = 5
 
 export const AVATAR_OPTIONS = [
@@ -122,36 +109,19 @@ interface ProfileContextType {
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined)
 
-function readProfilePreferences(): ProfilePreferences {
-  if (typeof window === "undefined") return {}
-  try {
-    const raw = window.localStorage.getItem(PROFILE_PREFS_STORAGE_KEY)
-    if (!raw) return {}
-    return JSON.parse(raw) as ProfilePreferences
-  } catch {
-    return {}
-  }
-}
-
-function writeProfilePreferences(value: ProfilePreferences) {
-  if (typeof window === "undefined") return
-  window.localStorage.setItem(PROFILE_PREFS_STORAGE_KEY, JSON.stringify(value))
-}
-
-function mapApiProfile(api: ApiProfile, prefs: ProfilePreferences): Profile {
-  const custom = prefs[String(api.id)] ?? {}
+function mapApiProfile(api: ApiProfile): Profile {
   return {
     id: String(api.id),
     name: api.name,
-    avatarUrl: custom.avatarUrl ?? "",
+    avatarUrl: api.avatar_key,
     isKids: api.is_kids,
-    maturityRating: custom.maturityRating ?? (api.is_kids ? "G" : "NC-17"),
-    language: custom.language ?? "en",
-    autoplayNextEpisode: custom.autoplayNextEpisode ?? true,
-    autoplayPreviews: custom.autoplayPreviews ?? true,
-    hasPin: custom.hasPin ?? false,
-    pin: custom.pin,
-    gameHandle: custom.gameHandle,
+    maturityRating: api.maturity_rating,
+    language: api.language,
+    autoplayNextEpisode: api.autoplay_next_episode,
+    autoplayPreviews: api.autoplay_previews,
+    hasPin: api.has_pin,
+    pin: api.pin,
+    gameHandle: api.game_handle || undefined,
     createdAt: new Date(api.created_at),
   }
 }
@@ -176,21 +146,15 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
     const bootstrap = async () => {
       try {
-        const plans = await listPlans()
         const subscriptions = await listUserSubscriptions()
-        let activeSubscription = subscriptions[0]
-
-        if (!activeSubscription && plans.length > 0) {
-          activeSubscription = await createUserSubscription(plans[0].id)
-        }
+        const activeSubscription = subscriptions[0]
         if (!activeSubscription) return
 
         const fetchedProfiles = await listProfiles()
         const ensuredProfiles =
           fetchedProfiles.length > 0 ? fetchedProfiles : [await createProfile({ name: "User" })]
 
-        const preferences = readProfilePreferences()
-        const mappedProfiles = ensuredProfiles.map((profile) => mapApiProfile(profile, preferences))
+        const mappedProfiles = ensuredProfiles.map(mapApiProfile)
         if (!mounted) return
 
         setApiEnabled(true)
@@ -219,22 +183,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const persistLocalProfilePreference = useCallback((id: string, updates: Partial<Profile>) => {
-    const current = readProfilePreferences()
-    current[id] = {
-      ...current[id],
-      avatarUrl: updates.avatarUrl ?? current[id]?.avatarUrl,
-      maturityRating: updates.maturityRating ?? current[id]?.maturityRating,
-      language: updates.language ?? current[id]?.language,
-      autoplayNextEpisode: updates.autoplayNextEpisode ?? current[id]?.autoplayNextEpisode,
-      autoplayPreviews: updates.autoplayPreviews ?? current[id]?.autoplayPreviews,
-      hasPin: updates.hasPin ?? current[id]?.hasPin,
-      pin: updates.pin ?? current[id]?.pin,
-      gameHandle: updates.gameHandle ?? current[id]?.gameHandle,
-    }
-    writeProfilePreferences(current)
-  }, [])
-
   const addProfile = useCallback(
     (profileData: Omit<Profile, "id" | "createdAt">) => {
       if (profiles.length >= maxProfiles) return
@@ -249,7 +197,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             createdAt: new Date(),
           },
         ])
-        persistLocalProfilePreference(localId, profileData)
         return
       }
 
@@ -257,14 +204,20 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         const created = await createProfile({
           name: profileData.name,
           is_kids: profileData.isKids,
-          avatar_key: "",
+          avatar_key: profileData.avatarUrl,
+          maturity_rating: profileData.isKids ? "G" : profileData.maturityRating,
+          language: profileData.language,
+          autoplay_next_episode: profileData.autoplayNextEpisode,
+          autoplay_previews: profileData.autoplayPreviews,
+          has_pin: profileData.hasPin,
+          pin: profileData.pin ?? "",
+          game_handle: profileData.gameHandle ?? "",
         })
-        const profile = mapApiProfile(created, readProfilePreferences())
+        const profile = mapApiProfile(created)
         setProfiles((prev) => [...prev, profile])
-        persistLocalProfilePreference(profile.id, profileData)
       })()
     },
-    [apiEnabled, maxProfiles, persistLocalProfilePreference, profiles.length]
+    [apiEnabled, maxProfiles, profiles.length]
   )
 
   const updateProfile = useCallback(
@@ -273,7 +226,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       if (currentProfile?.id === id) {
         setCurrentProfile((prev) => (prev ? { ...prev, ...updates } : null))
       }
-      persistLocalProfilePreference(id, updates)
 
       if (!apiEnabled) return
       const numericId = Number(id)
@@ -282,9 +234,17 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       void updateProfileRequest(numericId, {
         name: updates.name,
         is_kids: updates.isKids,
+        avatar_key: updates.avatarUrl,
+        maturity_rating: updates.maturityRating,
+        language: updates.language,
+        autoplay_next_episode: updates.autoplayNextEpisode,
+        autoplay_previews: updates.autoplayPreviews,
+        has_pin: updates.hasPin,
+        pin: updates.pin ?? (updates.hasPin === false ? "" : undefined),
+        game_handle: updates.gameHandle,
       })
     },
-    [apiEnabled, currentProfile?.id, persistLocalProfilePreference]
+    [apiEnabled, currentProfile?.id]
   )
 
   const deleteProfile = useCallback(

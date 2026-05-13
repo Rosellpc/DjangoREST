@@ -36,10 +36,19 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             "starts_at",
             "ends_at",
             "auto_renew",
+            "payment_provider",
+            "payment_brand",
+            "payment_last4",
+            "billing_email",
             "created_at",
             "updated_at",
         ]
         read_only_fields = ["id", "user", "created_at", "updated_at", "plan"]
+
+    def validate_payment_last4(self, value):
+        if value and (not value.isdigit() or len(value) != 4):
+            raise serializers.ValidationError("payment_last4 must be 4 digits.")
+        return value
 
     def validate(self, attrs):
         request = self.context.get("request")
@@ -52,6 +61,14 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
 
 
 class ProfileSerializer(serializers.ModelSerializer):
+    pin = serializers.CharField(
+        source="pin_code",
+        required=False,
+        allow_blank=True,
+        max_length=4,
+        write_only=False,
+    )
+
     class Meta:
         model = Profile
         fields = [
@@ -60,10 +77,22 @@ class ProfileSerializer(serializers.ModelSerializer):
             "name",
             "is_kids",
             "avatar_key",
+            "maturity_rating",
+            "language",
+            "autoplay_next_episode",
+            "autoplay_previews",
+            "has_pin",
+            "pin",
+            "game_handle",
             "created_at",
             "updated_at",
         ]
         read_only_fields = ["id", "subscription", "created_at", "updated_at"]
+
+    def validate_pin(self, value):
+        if value and (not value.isdigit() or len(value) != 4):
+            raise serializers.ValidationError("PIN must be 4 digits.")
+        return value
 
 
 class FilmIdValidationMixin:

@@ -7,7 +7,10 @@ const backendBase =
 
 async function proxy(request: NextRequest, path: string[]) {
   const url = new URL(request.url)
-  const target = `${backendBase}/${path.join("/")}${url.search}`
+  const normalizedBase = backendBase.replace(/\/$/, "")
+  const joinedPath = path.join("/")
+  const djangoPath = joinedPath.endsWith("/") ? joinedPath : `${joinedPath}/`
+  const target = `${normalizedBase}/${djangoPath}${url.search}`
 
   const headers = new Headers()
   const authorization = request.headers.get("authorization")

@@ -12,8 +12,14 @@ def env_bool(name: str, default: bool = False) -> bool:
     return os.getenv(name, str(default)).strip().lower() in {"1", "true", "yes", "on"}
 
 
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-dev-only-key")
 DEBUG = env_bool("DEBUG", False)
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "django-insecure-dev-only-key"
+    else:
+        raise RuntimeError("SECRET_KEY is required when DEBUG is false.")
 
 raw_hosts = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost")
 ALLOWED_HOSTS = [host.strip() for host in raw_hosts.split(",") if host.strip()]

@@ -1,35 +1,46 @@
-# STREAMFLIX
+# STREAMFLIX Frontend
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+Frontend de STREAMFLIX construido con Next.js, conectado al backend Django REST de este monorepo.
 
-## Built with v0
+## Requisitos
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
+- Node.js 20+
+- pnpm
+- Backend Django corriendo en `http://127.0.0.1:8000`
 
-[Continue working on v0 →](https://v0.app/chat/projects/prj_S7TgenV6nUgcQRrZYHtr24l6bdDx)
+## Configuracion
 
-## Getting Started
+1. Copia variables de entorno:
+   `Copy-Item .env.local.example .env.local`
+2. Revisa `NEXT_PUBLIC_API_BASE_URL` en `.env.local`.
 
-First, run the development server:
+Valor por defecto:
+
+`NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api`
+
+## Ejecutar en desarrollo
+
+Desde `frontend/`:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+La app queda disponible en `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts utiles
 
-## Learn More
+- `pnpm dev`: servidor de desarrollo
+- `pnpm build`: build de produccion
+- `pnpm start`: correr build de produccion
+- `pnpm lint`: lint del frontend
 
-To learn more, take a look at the following resources:
+## Flujo recomendado en el monorepo
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+1. Inicia backend en la raiz del repo:
+   `uv run python manage.py runserver`
+2. Inicia frontend en `frontend/`:
+   `pnpm dev`
 
-<a href="https://v0.app/chat/api/kiro/clone/Rosellpc/STREAMFLIX" alt="Open in Kiro"><img src="https://pdgvvgmkdvyeydso.public.blob.vercel-storage.com/open%20in%20kiro.svg?sanitize=true" /></a>
+Con eso el frontend consume la API del backend local.

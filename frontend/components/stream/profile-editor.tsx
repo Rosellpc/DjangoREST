@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ArrowLeft, Pencil, Lock, Trash2, ChevronRight, Check, X } from "lucide-react"
+import { ArrowLeft, Pencil, Lock, Trash2, ChevronRight, Check } from "lucide-react"
 import {
   useProfile,
   AVATAR_COLORS,
@@ -37,9 +37,10 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
   const [pinError, setPinError] = useState("")
 
   useEffect(() => {
-    if (profile) {
+    if (!profile) return
+    const colorIndex = profiles.indexOf(profile) % AVATAR_COLORS.length
+    setTimeout(() => {
       setName(profile.name)
-      const colorIndex = profiles.indexOf(profile) % AVATAR_COLORS.length
       setSelectedColor(colorIndex)
       setIsKids(profile.isKids)
       setLanguage(profile.language)
@@ -48,7 +49,7 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
       setAutoplayPreviews(profile.autoplayPreviews)
       setGameHandle(profile.gameHandle || "")
       setHasPin(profile.hasPin)
-    }
+    }, 0)
   }, [profile, profiles])
 
   const handleSave = () => {

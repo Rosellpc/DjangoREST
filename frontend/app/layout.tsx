@@ -1,19 +1,12 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Space_Grotesk } from "next/font/google"
-import { Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
+import "@fontsource/space-grotesk/400.css"
+import "@fontsource/space-grotesk/500.css"
+import "@fontsource/space-grotesk/700.css"
+import "@fontsource/jetbrains-mono/400.css"
+import "@fontsource/jetbrains-mono/700.css"
 import "./globals.css"
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-space-grotesk",
-})
-
-const geistMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-geist-mono",
-})
 
 export const metadata: Metadata = {
   title: "StreamFlix - Watch Movies & TV Shows",
@@ -27,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="bg-background">
-      <body className={`${spaceGrotesk.variable} ${geistMono.variable} font-sans antialiased`}>
+      <body className="font-sans antialiased">
         {children}
         <Analytics />
       </body>

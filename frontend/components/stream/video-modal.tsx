@@ -63,7 +63,7 @@ export function VideoModal() {
   const liked = isLiked(selectedVideo.id)
   const disliked = isDisliked(selectedVideo.id)
   const progress = getWatchProgress(selectedVideo.id)
-  const isSeries = selectedVideo.type === "series" || Math.random() > 0.5 // Mock series detection
+  const isSeries = selectedVideo.type === "series"
 
   const handleMyListClick = () => {
     if (inList) {

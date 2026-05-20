@@ -113,7 +113,10 @@ export function ProfileSelector({ onManageProfiles }: ProfileSelectorProps) {
       </div>
 
       <button
-        onClick={() => setIsManaging(!isManaging)}
+        onClick={() => {
+          setIsManaging(!isManaging)
+          onManageProfiles()
+        }}
         className={`mt-12 px-6 py-2 border rounded text-sm tracking-wider transition-colors ${
           isManaging
             ? "border-foreground bg-foreground text-background hover:bg-foreground/90"

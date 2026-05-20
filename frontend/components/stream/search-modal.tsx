@@ -36,6 +36,10 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
   }, [isOpen])
 
   useEffect(() => {
+    setSearchQuery(localQuery)
+  }, [localQuery, setSearchQuery])
+
+  useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose()
     }

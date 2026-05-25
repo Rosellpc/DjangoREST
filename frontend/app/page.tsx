@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
+import Image from "next/image"
 import { Navbar } from "@/components/stream/navbar"
 import { HeroBanner } from "@/components/stream/hero-banner"
 import { VideoRow } from "@/components/stream/video-row"
@@ -34,6 +35,7 @@ function StreamingApp() {
     playingVideo,
     closePlayer,
     continueWatching,
+    openVideoModal,
     registerCatalogVideos,
     updateWatchProgress,
     getWatchProgress,
@@ -106,6 +108,7 @@ function StreamingApp() {
         .filter((video): video is NonNullable<typeof video> => Boolean(video)),
     [continueWatching, getWatchProgress]
   )
+  const feedHighlights = useMemo(() => catalog.slice(0, 8), [catalog])
 
   if (!isProfileSelected && !showManageProfiles) {
     return <ProfileSelector onManageProfiles={() => setShowManageProfiles(true)} />
@@ -124,7 +127,7 @@ function StreamingApp() {
   }
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background pb-24 md:pb-0">
       <Navbar onSearchClick={() => setIsSearchOpen(true)} onMyListClick={() => setIsMyListOpen(true)} />
 
       <HeroBanner
@@ -134,7 +137,43 @@ function StreamingApp() {
         previewVideoSrc={featuredContent.previewVideoSrc}
       />
 
-      <div className="-mt-32 relative z-10 space-y-2">
+      <div className="-mt-32 relative z-10 space-y-4">
+        <section className="px-4 md:px-12">
+          <div className="rounded-2xl border border-border/70 bg-card/70 p-4 md:p-6 backdrop-blur">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-primary">For You</p>
+                <h2 className="mt-1 text-xl font-semibold">Tu feed de hoy</h2>
+              </div>
+              <button
+                onClick={() => setIsMyListOpen(true)}
+                className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-muted/40 hover:text-foreground"
+              >
+                Ver mi lista
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {feedHighlights.map((video) => (
+                <button
+                  key={`feed-${video.id}`}
+                  onClick={() => openVideoModal(video)}
+                  className="group text-left"
+                >
+                  <div className="relative aspect-video overflow-hidden rounded-xl">
+                    <Image
+                      src={video.thumbnail}
+                      alt={video.title}
+                      fill
+                      className="object-cover transition duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-70" />
+                    <p className="absolute bottom-2 left-2 line-clamp-1 text-xs font-semibold">{video.title}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
         <ContinueWatchingRow videos={continueWatchingWithProgress} />
         <Top10Row title="Top 10 Movies" videos={top10Today} />
         <VideoRow title="Trending Now" videos={trendingNow} />

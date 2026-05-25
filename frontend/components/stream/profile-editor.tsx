@@ -119,27 +119,29 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
 
   const renderMainView = () => (
     <>
-      <div className="flex items-center gap-4 mb-8">
+      <div className="mb-8 flex items-center gap-4">
         <button
           onClick={onClose}
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          className="rounded-full border border-border bg-card/80 p-2 text-muted-foreground transition hover:text-foreground"
         >
-          <ArrowLeft className="w-6 h-6" />
+          <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-3xl md:text-4xl text-foreground">
-          {isNewProfile ? "Add Profile" : "Edit Profile"}
-        </h1>
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-primary">Profile</p>
+          <h1 className="text-3xl md:text-4xl text-foreground">{isNewProfile ? "Add Profile" : "Edit Profile"}</h1>
+        </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-8">
+      <div className="grid gap-8 md:grid-cols-[260px_1fr]">
         {/* Avatar Section */}
+        <div className="rounded-2xl border border-border bg-card/70 p-6 backdrop-blur">
         <div className="flex flex-col items-center gap-4">
           <button
             onClick={() => setCurrentView("avatar")}
             className="relative group"
           >
             <div
-              className={`w-32 h-32 md:w-40 md:h-40 rounded-md ${avatarColor.bg} flex items-center justify-center text-white text-5xl md:text-6xl font-bold`}
+              className={`h-32 w-32 rounded-full md:h-40 md:w-40 ${avatarColor.bg} flex items-center justify-center text-white text-5xl md:text-6xl font-bold ring-4 ring-background`}
             >
               {isKids ? (
                 <span className="text-2xl md:text-3xl">KIDS</span>
@@ -149,7 +151,7 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
                 "?"
               )}
             </div>
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
               <Pencil className="w-8 h-8 text-white" />
             </div>
           </button>
@@ -160,9 +162,10 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
             Change Avatar
           </button>
         </div>
+        </div>
 
         {/* Form Section */}
-        <div className="flex-1 space-y-6">
+        <div className="space-y-6 rounded-2xl border border-border bg-card/70 p-6 backdrop-blur">
           {/* Name Input */}
           <div>
             <label className="block text-sm text-muted-foreground mb-2">
@@ -173,7 +176,7 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={20}
-              className="w-full bg-muted/50 border border-border rounded px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-xl border border-border bg-muted/50 px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Enter profile name"
             />
           </div>
@@ -188,7 +191,7 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
               value={gameHandle}
               onChange={(e) => setGameHandle(e.target.value)}
               maxLength={16}
-              className="w-full bg-muted/50 border border-border rounded px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-xl border border-border bg-muted/50 px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Your game handle (optional)"
             />
             <p className="text-xs text-muted-foreground mt-1">
@@ -199,7 +202,7 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
           {/* Language Setting */}
           <button
             onClick={() => setCurrentView("language")}
-            className="w-full flex items-center justify-between p-4 bg-muted/30 rounded hover:bg-muted/50 transition-colors"
+            className="w-full rounded-xl bg-muted/30 p-4 transition-colors hover:bg-muted/50 flex items-center justify-between"
           >
             <div>
               <p className="text-foreground text-left">Language</p>
@@ -214,7 +217,7 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
           {!isKids && (
             <button
               onClick={() => setCurrentView("maturity")}
-              className="w-full flex items-center justify-between p-4 bg-muted/30 rounded hover:bg-muted/50 transition-colors"
+              className="w-full rounded-xl bg-muted/30 p-4 transition-colors hover:bg-muted/50 flex items-center justify-between"
             >
               <div>
                 <p className="text-foreground text-left">Maturity Settings</p>
@@ -230,7 +233,7 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
           {!isNewProfile && !isKids && (
             <button
               onClick={() => setCurrentView("pin")}
-              className="w-full flex items-center justify-between p-4 bg-muted/30 rounded hover:bg-muted/50 transition-colors"
+              className="w-full rounded-xl bg-muted/30 p-4 transition-colors hover:bg-muted/50 flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
                 <Lock className="w-5 h-5 text-muted-foreground" />
@@ -314,17 +317,17 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-col md:flex-row gap-4 mt-8 pt-8 border-t border-border">
+      <div className="mt-8 flex flex-col gap-4 border-t border-border pt-8 md:flex-row">
         <button
           onClick={handleSave}
           disabled={!name.trim()}
-          className="flex-1 px-6 py-3 bg-foreground text-background font-medium rounded hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 rounded-xl bg-primary px-6 py-3 font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Save
         </button>
         <button
           onClick={onClose}
-          className="flex-1 px-6 py-3 border border-muted-foreground text-muted-foreground rounded hover:bg-muted transition-colors"
+          className="flex-1 rounded-xl border border-muted-foreground px-6 py-3 text-muted-foreground transition hover:bg-muted"
         >
           Cancel
         </button>

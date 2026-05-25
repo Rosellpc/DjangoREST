@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import type { FormEvent } from "react"
-import { Loader2, LogIn, UserPlus } from "lucide-react"
+import { Loader2, LogIn, ShieldCheck, UserPlus } from "lucide-react"
 
 import { useAuth } from "@/lib/auth-context"
 
@@ -35,7 +35,7 @@ export function AuthScreen() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground grid lg:grid-cols-[1.15fr_0.85fr]">
+    <main className="min-h-screen bg-background text-foreground grid lg:grid-cols-[1.08fr_0.92fr]">
       <section className="relative hidden overflow-hidden lg:block">
         <video
           className="absolute inset-0 h-full w-full object-cover opacity-70"
@@ -45,29 +45,42 @@ export function AuthScreen() {
           loop
           playsInline
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/60 to-transparent" />
         <div className="relative z-10 flex h-full max-w-2xl flex-col justify-end p-12">
           <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-primary">STREAMFLIX</p>
-          <h1 className="text-5xl font-bold leading-tight">Tu catálogo conectado a Django.</h1>
+          <h1 className="text-5xl font-bold leading-tight">Tu catalogo conectado a Django.</h1>
           <p className="mt-5 max-w-xl text-base text-muted-foreground">
-            Inicia sesión para guardar perfiles, lista personal e historial directamente en la base de datos.
+            Inicia sesion para guardar perfiles, lista personal e historial directamente en la base de datos.
           </p>
+          <div className="mt-8 inline-flex w-fit items-center gap-2 rounded-full border border-border/80 bg-card/70 px-4 py-2 text-sm text-muted-foreground">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            Sesiones seguras con JWT
+          </div>
         </div>
       </section>
 
-      <section className="flex min-h-screen items-center justify-center px-4 py-10">
-        <div className="w-full max-w-md">
+      <section className="relative flex min-h-screen items-center justify-center px-4 py-10">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,90,95,0.25),transparent_35%),radial-gradient(circle_at_85%_85%,rgba(255,130,70,0.15),transparent_35%)] lg:hidden" />
+        <div className="relative z-10 w-full max-w-md">
           <div className="mb-8 lg:hidden">
             <p className="text-sm font-semibold uppercase tracking-[0.25em] text-primary">STREAMFLIX</p>
-            <h1 className="mt-3 text-3xl font-bold">Entra a tu cuenta</h1>
+            <h1 className="mt-3 text-3xl font-bold">Bienvenido de vuelta</h1>
+            <p className="mt-2 text-sm text-muted-foreground">Tu experiencia personalizada empieza aqui.</p>
           </div>
 
-          <div className="rounded-lg border border-border bg-card/80 p-6 shadow-2xl backdrop-blur">
-            <div className="mb-6 flex rounded-md border border-border bg-muted/30 p-1">
+          <div className="rounded-2xl border border-border bg-card/85 p-6 shadow-2xl backdrop-blur">
+            <div className="mb-2">
+              <h2 className="text-xl font-semibold">{isRegistering ? "Crea tu cuenta" : "Inicia sesion"}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {isRegistering ? "Empieza en menos de un minuto." : "Continua donde te quedaste."}
+              </p>
+            </div>
+
+            <div className="mb-6 mt-5 flex rounded-xl border border-border bg-muted/30 p-1">
               <button
                 type="button"
                 onClick={() => setMode("login")}
-                className={`flex-1 rounded px-3 py-2 text-sm font-medium transition-colors ${
+                className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   mode === "login" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
                 }`}
               >
@@ -76,7 +89,7 @@ export function AuthScreen() {
               <button
                 type="button"
                 onClick={() => setMode("register")}
-                className={`flex-1 rounded px-3 py-2 text-sm font-medium transition-colors ${
+                className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   mode === "register" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
                 }`}
               >
@@ -93,7 +106,7 @@ export function AuthScreen() {
                   id="username"
                   value={username}
                   onChange={(event) => setUsername(event.target.value)}
-                  className="h-11 w-full rounded-md border border-border bg-muted/40 px-3 text-foreground outline-none transition focus:border-primary"
+                  className="h-11 w-full rounded-xl border border-border bg-muted/40 px-3 text-foreground outline-none transition focus:border-primary"
                   autoComplete="username"
                 />
               </div>
@@ -108,7 +121,7 @@ export function AuthScreen() {
                     type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
-                    className="h-11 w-full rounded-md border border-border bg-muted/40 px-3 text-foreground outline-none transition focus:border-primary"
+                    className="h-11 w-full rounded-xl border border-border bg-muted/40 px-3 text-foreground outline-none transition focus:border-primary"
                     autoComplete="email"
                   />
                 </div>
@@ -116,20 +129,20 @@ export function AuthScreen() {
 
               <div>
                 <label className="mb-2 block text-sm text-muted-foreground" htmlFor="password">
-                  Contraseña
+                  Contrasena
                 </label>
                 <input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className="h-11 w-full rounded-md border border-border bg-muted/40 px-3 text-foreground outline-none transition focus:border-primary"
+                  className="h-11 w-full rounded-xl border border-border bg-muted/40 px-3 text-foreground outline-none transition focus:border-primary"
                   autoComplete={isRegistering ? "new-password" : "current-password"}
                 />
               </div>
 
               {error && (
-                <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                   {error}
                 </div>
               )}
@@ -137,7 +150,7 @@ export function AuthScreen() {
               <button
                 type="submit"
                 disabled={isSubmitting || !username.trim() || !password}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

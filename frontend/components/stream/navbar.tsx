@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Search, Bell, ChevronDown, User, Settings, HelpCircle, LogOut, Pencil } from "lucide-react"
+import { Search, Bell, ChevronDown, User, Settings, HelpCircle, LogOut, Pencil, House, Bookmark, CircleUserRound } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { useVideo } from "@/lib/video-context"
@@ -64,6 +64,7 @@ export function Navbar({ onSearchClick, onMyListClick }: NavbarProps) {
   const otherProfiles = profiles.filter(p => p.id !== currentProfile?.id)
 
   return (
+    <>
     <nav
       className={`fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 md:px-12 py-4 transition-colors duration-300 ${
         isScrolled ? "bg-background/95 backdrop-blur-sm" : "bg-gradient-to-b from-black/80 to-transparent"
@@ -103,7 +104,7 @@ export function Navbar({ onSearchClick, onMyListClick }: NavbarProps) {
       <div className="flex items-center gap-4">
         <button
           onClick={onSearchClick}
-          className="text-foreground hover:text-muted-foreground transition-colors"
+          className="hidden md:inline-flex text-foreground hover:text-muted-foreground transition-colors"
         >
           <Search className="w-5 h-5" />
         </button>
@@ -250,5 +251,35 @@ export function Navbar({ onSearchClick, onMyListClick }: NavbarProps) {
         </div>
       </div>
     </nav>
+    <nav className="fixed bottom-4 left-4 right-4 z-40 rounded-2xl border border-border bg-card/95 p-2 shadow-xl backdrop-blur md:hidden">
+      <div className="grid grid-cols-4 gap-1">
+        <button className="flex flex-col items-center gap-1 rounded-xl bg-muted/40 px-2 py-2 text-xs text-foreground">
+          <House className="h-4 w-4" />
+          Inicio
+        </button>
+        <button
+          onClick={onSearchClick}
+          className="flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-muted-foreground transition hover:bg-muted/30 hover:text-foreground"
+        >
+          <Search className="h-4 w-4" />
+          Buscar
+        </button>
+        <button
+          onClick={onMyListClick}
+          className="flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-muted-foreground transition hover:bg-muted/30 hover:text-foreground"
+        >
+          <Bookmark className="h-4 w-4" />
+          Mi lista
+        </button>
+        <button
+          onClick={() => setShowProfileMenu(!showProfileMenu)}
+          className="flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs text-muted-foreground transition hover:bg-muted/30 hover:text-foreground"
+        >
+          <CircleUserRound className="h-4 w-4" />
+          Perfil
+        </button>
+      </div>
+    </nav>
+    </>
   )
 }

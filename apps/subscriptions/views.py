@@ -19,9 +19,12 @@ class SubscriptionPlanViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class UserSubscriptionViewSet(viewsets.ModelViewSet):
+    queryset = UserSubscription.objects.none()
     serializer_class = UserSubscriptionSerializer
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return UserSubscription.objects.none()
         return UserSubscription.objects.select_related("plan").filter(user=self.request.user)
 
     def perform_create(self, serializer):
@@ -29,9 +32,12 @@ class UserSubscriptionViewSet(viewsets.ModelViewSet):
 
 
 class ProfileViewSet(viewsets.ModelViewSet):
+    queryset = Profile.objects.none()
     serializer_class = ProfileSerializer
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Profile.objects.none()
         return Profile.objects.select_related("subscription", "subscription__plan").filter(
             subscription__user=self.request.user
         )
@@ -53,18 +59,24 @@ class ProfileViewSet(viewsets.ModelViewSet):
 
 
 class WatchHistoryViewSet(viewsets.ModelViewSet):
+    queryset = WatchHistory.objects.none()
     serializer_class = WatchHistorySerializer
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return WatchHistory.objects.none()
         return WatchHistory.objects.select_related("profile", "profile__subscription").filter(
             profile__subscription__user=self.request.user
         )
 
 
 class MyListItemViewSet(viewsets.ModelViewSet):
+    queryset = MyListItem.objects.none()
     serializer_class = MyListItemSerializer
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return MyListItem.objects.none()
         return MyListItem.objects.select_related("profile", "profile__subscription").filter(
             profile__subscription__user=self.request.user
         )

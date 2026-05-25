@@ -79,7 +79,7 @@ export function VideoModal() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-4 md:py-8 px-2 md:px-4"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-2 sm:py-4 md:py-8 px-2 md:px-4"
       onClick={closeVideoModal}
     >
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
@@ -91,7 +91,7 @@ export function VideoModal() {
         {/* Close button */}
         <button
           onClick={closeVideoModal}
-          className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-card flex items-center justify-center hover:bg-muted transition-colors"
+            className="absolute top-3 right-3 md:top-4 md:right-4 z-20 w-9 h-9 rounded-full bg-card flex items-center justify-center hover:bg-muted transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
@@ -110,15 +110,15 @@ export function VideoModal() {
           <div className="absolute inset-0 flex items-center justify-center">
             <button
               onClick={handlePlay}
-              className="w-20 h-20 rounded-full bg-primary/90 flex items-center justify-center hover:bg-primary transition-all hover:scale-110 group"
+              className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-primary/90 flex items-center justify-center hover:bg-primary transition-all md:hover:scale-110 group"
             >
-              <Play className="w-10 h-10 text-primary-foreground fill-primary-foreground ml-1 group-hover:scale-110 transition-transform" />
+              <Play className="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 text-primary-foreground fill-primary-foreground ml-1 md:group-hover:scale-110 transition-transform" />
             </button>
           </div>
 
           {/* Bottom controls */}
-          <div className="absolute bottom-0 left-0 right-0 p-6">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">{selectedVideo.title}</h2>
+          <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 md:p-6">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">{selectedVideo.title}</h2>
             
             {/* Progress bar if watching */}
             {progress && progress.progress > 0 && progress.progress < 95 && (
@@ -135,10 +135,10 @@ export function VideoModal() {
               </div>
             )}
             
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               <button
                 onClick={handlePlay}
-                className="flex items-center gap-2 bg-foreground text-background px-6 py-2 rounded font-semibold hover:bg-foreground/90 transition-colors"
+                className="flex items-center gap-2 bg-foreground text-background px-4 sm:px-6 py-2 rounded font-semibold hover:bg-foreground/90 transition-colors text-sm sm:text-base"
               >
                 <Play className="w-5 h-5 fill-current" />
                 {progress && progress.progress > 5 ? "Resume" : "Play"}
@@ -194,7 +194,7 @@ export function VideoModal() {
         </div>
 
         {/* Info section */}
-        <div className="p-6">
+        <div className="p-4 sm:p-5 md:p-6">
           <div className="flex items-center gap-3 mb-4 flex-wrap">
             <span className="text-green-500 font-semibold">
               {selectedVideo.match || 95}% Match
@@ -212,7 +212,7 @@ export function VideoModal() {
             )}
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 mb-6">
+          <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-6">
             <div className="md:col-span-2">
               <p className="text-foreground/90 leading-relaxed">
                 {selectedVideo.description ||
@@ -239,7 +239,7 @@ export function VideoModal() {
 
           {/* Tabs */}
           <div className="border-b border-border mb-4">
-            <div className="flex gap-6">
+            <div className="flex gap-4 sm:gap-6 overflow-x-auto scrollbar-hide">
               {isSeries && (
                 <button
                   onClick={() => setActiveTab("episodes")}
@@ -297,10 +297,10 @@ export function VideoModal() {
                 {mockEpisodes.map((episode) => (
                   <div
                     key={episode.number}
-                    className="flex gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
+                  className="flex flex-col sm:flex-row gap-3 sm:gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
                     onClick={handlePlay}
                   >
-                    <div className="relative w-32 aspect-video flex-shrink-0 rounded overflow-hidden">
+                    <div className="relative w-full sm:w-32 aspect-video flex-shrink-0 rounded overflow-hidden">
                       <Image
                         src={episode.thumbnail}
                         alt={episode.title}
@@ -394,3 +394,4 @@ export function VideoModal() {
     </div>
   )
 }
+

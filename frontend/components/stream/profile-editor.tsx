@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ArrowLeft, Pencil, Lock, Trash2, ChevronRight, Check } from "lucide-react"
+import { ArrowLeft, Pencil, Lock, Trash2, ChevronRight, Check, Camera, Grid3X3, Bookmark, Shield } from "lucide-react"
 import {
   useProfile,
   AVATAR_COLORS,
@@ -9,6 +9,7 @@ import {
   MATURITY_RATINGS,
   type Profile,
 } from "@/lib/profile-context"
+import { getPosterByIndex } from "@/lib/local-media"
 
 interface ProfileEditorProps {
   profile: Profile | null
@@ -30,6 +31,8 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
   const [autoplayPreviews, setAutoplayPreviews] = useState(true)
   const [gameHandle, setGameHandle] = useState("")
   const [hasPin, setHasPin] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState("")
+  const [activeTab, setActiveTab] = useState<"posts" | "saved" | "private">("posts")
 
   const [currentView, setCurrentView] = useState<EditorView>("main")
   const [newPin, setNewPin] = useState("")
@@ -49,6 +52,7 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
       setAutoplayPreviews(profile.autoplayPreviews)
       setGameHandle(profile.gameHandle || "")
       setHasPin(profile.hasPin)
+      setAvatarUrl(profile.avatarUrl || "")
     }, 0)
   }, [profile, profiles])
 
@@ -65,6 +69,7 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
         autoplayNextEpisode: autoplayNext,
         autoplayPreviews: autoplayPreviews,
         hasPin: false,
+        avatarUrl,
         gameHandle: gameHandle.trim() || undefined,
       })
     } else if (profile) {
@@ -75,6 +80,7 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
         language,
         autoplayNextEpisode: autoplayNext,
         autoplayPreviews: autoplayPreviews,
+        avatarUrl,
         gameHandle: gameHandle.trim() || undefined,
       })
     }
@@ -116,6 +122,7 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
   }
 
   const avatarColor = AVATAR_COLORS[selectedColor]
+  const recentItems = Array.from({ length: 9 }).map((_, i) => getPosterByIndex(i + 1))
 
   const renderMainView = () => (
     <>
@@ -140,21 +147,45 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
             onClick={() => setCurrentView("avatar")}
             className="relative group"
           >
-            <div
-              className={`h-32 w-32 rounded-full md:h-40 md:w-40 ${avatarColor.bg} flex items-center justify-center text-white text-5xl md:text-6xl font-bold ring-4 ring-background`}
-            >
-              {isKids ? (
-                <span className="text-2xl md:text-3xl">KIDS</span>
-              ) : name ? (
-                name.charAt(0).toUpperCase()
-              ) : (
-                "?"
-              )}
-            </div>
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt="Avatar"
+                className="h-32 w-32 rounded-full object-cover ring-4 ring-background md:h-40 md:w-40"
+              />
+            ) : (
+              <div
+                className={`h-32 w-32 rounded-full md:h-40 md:w-40 ${avatarColor.bg} flex items-center justify-center text-white text-5xl md:text-6xl font-bold ring-4 ring-background`}
+              >
+                {isKids ? (
+                  <span className="text-2xl md:text-3xl">KIDS</span>
+                ) : name ? (
+                  name.charAt(0).toUpperCase()
+                ) : (
+                  "?"
+                )}
+              </div>
+            )}
             <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
               <Pencil className="w-8 h-8 text-white" />
             </div>
           </button>
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-muted/40 hover:text-foreground">
+            <Camera className="h-3.5 w-3.5" />
+            Upload photo
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                const reader = new FileReader()
+                reader.onload = () => setAvatarUrl(String(reader.result || ""))
+                reader.readAsDataURL(file)
+              }}
+            />
+          </label>
           <button
             onClick={() => setCurrentView("avatar")}
             className="text-sm text-muted-foreground hover:text-foreground"
@@ -166,6 +197,51 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
 
         {/* Form Section */}
         <div className="space-y-6 rounded-2xl border border-border bg-card/70 p-6 backdrop-blur">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">@{name.toLowerCase().replace(/\s+/g, "") || "newprofile"}</p>
+              <p className="text-xs text-muted-foreground">Game handle: {gameHandle || "not set"}</p>
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-center text-xs">
+              <div className="rounded-lg border border-border px-2 py-1.5">
+                <p className="font-semibold text-foreground">42</p>
+                <p className="text-muted-foreground">Posts</p>
+              </div>
+              <div className="rounded-lg border border-border px-2 py-1.5">
+                <p className="font-semibold text-foreground">18</p>
+                <p className="text-muted-foreground">Saved</p>
+              </div>
+              <div className="rounded-lg border border-border px-2 py-1.5">
+                <p className="font-semibold text-foreground">{hasPin ? "On" : "Off"}</p>
+                <p className="text-muted-foreground">Private</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 rounded-xl border border-border p-1">
+            <button
+              onClick={() => setActiveTab("posts")}
+              className={`flex items-center justify-center gap-2 rounded-lg px-2 py-2 text-xs transition ${activeTab === "posts" ? "bg-muted text-foreground" : "text-muted-foreground"}`}
+            >
+              <Grid3X3 className="h-3.5 w-3.5" />
+              Posts
+            </button>
+            <button
+              onClick={() => setActiveTab("saved")}
+              className={`flex items-center justify-center gap-2 rounded-lg px-2 py-2 text-xs transition ${activeTab === "saved" ? "bg-muted text-foreground" : "text-muted-foreground"}`}
+            >
+              <Bookmark className="h-3.5 w-3.5" />
+              Saved
+            </button>
+            <button
+              onClick={() => setActiveTab("private")}
+              className={`flex items-center justify-center gap-2 rounded-lg px-2 py-2 text-xs transition ${activeTab === "private" ? "bg-muted text-foreground" : "text-muted-foreground"}`}
+            >
+              <Shield className="h-3.5 w-3.5" />
+              Private
+            </button>
+          </div>
+
           {/* Name Input */}
           <div>
             <label className="block text-sm text-muted-foreground mb-2">
@@ -313,6 +389,21 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
               />
             </button>
           </label>
+
+          <div className="border-t border-border pt-4">
+            <h3 className="mb-3 text-sm font-medium text-foreground">
+              {activeTab === "posts" && "Recently watched"}
+              {activeTab === "saved" && "Saved picks"}
+              {activeTab === "private" && "Private previews"}
+            </h3>
+            <div className="grid grid-cols-3 gap-2">
+              {recentItems.map((item, i) => (
+                <div key={`preview-${i}`} className="relative aspect-[3/4] overflow-hidden rounded-lg border border-border bg-muted/40">
+                  <img src={item} alt="preview" className="h-full w-full object-cover" />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 

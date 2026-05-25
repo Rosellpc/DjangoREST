@@ -69,7 +69,9 @@ export function ProfileSelector({ onManageProfiles }: ProfileSelectorProps) {
                     isManaging ? "opacity-50" : ""
                   }`}
                 >
-                  {profile.isKids ? (
+                  {profile.avatarUrl ? (
+                    <img src={profile.avatarUrl} alt={profile.name} className="h-full w-full rounded-md object-cover" />
+                  ) : profile.isKids ? (
                     <span className="text-2xl md:text-3xl">KIDS</span>
                   ) : (
                     profile.name.charAt(0).toUpperCase()
@@ -134,7 +136,11 @@ export function ProfileSelector({ onManageProfiles }: ProfileSelectorProps) {
               <div
                 className={`w-16 h-16 rounded-md ${getAvatarColor(profiles.indexOf(pinModal.profile)).bg} flex items-center justify-center text-white text-2xl font-bold mb-3`}
               >
-                {pinModal.profile.name.charAt(0).toUpperCase()}
+                {pinModal.profile.avatarUrl ? (
+                  <img src={pinModal.profile.avatarUrl} alt={pinModal.profile.name} className="h-full w-full rounded-md object-cover" />
+                ) : (
+                  pinModal.profile.name.charAt(0).toUpperCase()
+                )}
               </div>
               <h2 className="text-xl font-semibold text-foreground">
                 Profile Lock is ON

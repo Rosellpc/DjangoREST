@@ -322,7 +322,7 @@ function TitleContent({ id }: { id: string }) {
       {/* Navigation bar */}
       <nav
         className={cn(
-          "fixed top-0 left-0 right-0 z-50 px-4 md:px-12 py-4 transition-all duration-300",
+          "fixed top-0 left-0 right-0 z-50 px-3 sm:px-4 md:px-12 py-3 md:py-4 transition-all duration-300",
           isScrolled ? "bg-background/95 backdrop-blur-md" : "bg-gradient-to-b from-black/80 to-transparent"
         )}
       >
@@ -345,7 +345,7 @@ function TitleContent({ id }: { id: string }) {
       </nav>
 
       {/* Hero section */}
-      <div className="relative h-[70vh] md:h-[80vh]">
+      <div className="relative min-h-[520px] h-[72vh] md:h-[80vh]">
         <div className="absolute inset-0">
           <Image
             src={titleData.backgroundImage}
@@ -361,7 +361,7 @@ function TitleContent({ id }: { id: string }) {
         {/* Sound control */}
         <button
           onClick={() => setIsMuted(!isMuted)}
-          className="absolute right-4 md:right-12 bottom-1/3 w-10 h-10 rounded-full border border-foreground/50 flex items-center justify-center hover:border-foreground transition-colors bg-background/20 backdrop-blur z-10"
+          className="absolute right-3 sm:right-4 md:right-12 bottom-1/3 w-9 h-9 md:w-10 md:h-10 rounded-full border border-foreground/50 flex items-center justify-center hover:border-foreground transition-colors bg-background/20 backdrop-blur z-10"
         >
           {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
         </button>
@@ -374,11 +374,11 @@ function TitleContent({ id }: { id: string }) {
         </div>
 
         {/* Content */}
-        <div className="absolute bottom-0 left-0 right-0 px-4 md:px-12 pb-8">
+        <div className="absolute bottom-0 left-0 right-0 px-3 sm:px-4 md:px-12 pb-6 md:pb-8">
           <div className="max-w-2xl">
-            <h1 className="text-4xl md:text-6xl font-bold mb-2">{titleData.title}</h1>
+            <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-2">{titleData.title}</h1>
             {titleData.tagline && (
-              <p className="text-lg text-muted-foreground mb-4 italic">{titleData.tagline}</p>
+              <p className="text-base sm:text-lg text-muted-foreground mb-4 italic">{titleData.tagline}</p>
             )}
 
             {/* Action buttons */}
@@ -455,11 +455,11 @@ function TitleContent({ id }: { id: string }) {
       </div>
 
       {/* Content section */}
-      <div className="px-4 md:px-12 py-8">
+      <div className="px-3 sm:px-4 md:px-12 py-6 md:py-8">
         {/* Description and metadata */}
         <div className="grid md:grid-cols-3 gap-8 mb-8">
           <div className="md:col-span-2">
-            <p className="text-foreground/90 leading-relaxed text-lg mb-4">
+            <p className="text-foreground/90 leading-relaxed text-base sm:text-lg mb-4">
               {titleData.description}
             </p>
             <p className="text-muted-foreground leading-relaxed">{titleData.longDescription}</p>
@@ -488,11 +488,11 @@ function TitleContent({ id }: { id: string }) {
 
         {/* Tabs */}
         <div className="border-b border-border mb-6">
-          <div className="flex gap-8">
+          <div className="flex gap-4 sm:gap-8 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setActiveTab("episodes")}
               className={cn(
-                "pb-4 text-base font-semibold transition-colors relative",
+                "pb-3 sm:pb-4 text-sm sm:text-base font-semibold transition-colors relative whitespace-nowrap",
                 activeTab === "episodes"
                   ? "text-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -506,7 +506,7 @@ function TitleContent({ id }: { id: string }) {
             <button
               onClick={() => setActiveTab("trailers")}
               className={cn(
-                "pb-4 text-base font-semibold transition-colors relative",
+                "pb-3 sm:pb-4 text-sm sm:text-base font-semibold transition-colors relative whitespace-nowrap",
                 activeTab === "trailers"
                   ? "text-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -520,7 +520,7 @@ function TitleContent({ id }: { id: string }) {
             <button
               onClick={() => setActiveTab("similar")}
               className={cn(
-                "pb-4 text-base font-semibold transition-colors relative",
+                "pb-3 sm:pb-4 text-sm sm:text-base font-semibold transition-colors relative whitespace-nowrap",
                 activeTab === "similar"
                   ? "text-foreground"
                   : "text-muted-foreground hover:text-foreground"
@@ -543,7 +543,7 @@ function TitleContent({ id }: { id: string }) {
                 <select
                   value={selectedSeason}
                   onChange={(e) => setSelectedSeason(Number(e.target.value))}
-                  className="appearance-none bg-card border border-border rounded-md px-4 py-2 pr-10 text-foreground focus:outline-none focus:ring-2 focus:ring-primary font-medium"
+                  className="appearance-none bg-card border border-border rounded-md px-3 sm:px-4 py-2 pr-10 text-sm sm:text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary font-medium"
                 >
                   {Array.from({ length: titleData.seasons }, (_, i) => (
                     <option key={i + 1} value={i + 1}>
@@ -564,13 +564,13 @@ function TitleContent({ id }: { id: string }) {
               {currentEpisodes.map((episode) => (
                 <div
                   key={episode.id}
-                  className="flex gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
+                  className="flex flex-col sm:flex-row gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
                   onClick={handlePlay}
                 >
-                  <div className="flex items-center justify-center w-8 text-2xl font-light text-muted-foreground">
+                  <div className="flex items-center justify-center w-8 text-xl sm:text-2xl font-light text-muted-foreground">
                     {episode.number}
                   </div>
-                  <div className="relative w-36 md:w-48 aspect-video flex-shrink-0 rounded overflow-hidden">
+                  <div className="relative w-full sm:w-36 md:w-48 aspect-video flex-shrink-0 rounded overflow-hidden">
                     <Image
                       src={episode.thumbnail}
                       alt={episode.title}
@@ -585,7 +585,7 @@ function TitleContent({ id }: { id: string }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-semibold text-lg">{episode.title}</h4>
+                      <h4 className="font-semibold text-base sm:text-lg">{episode.title}</h4>
                       <span className="text-sm text-muted-foreground">{episode.duration}</span>
                     </div>
                     <p className="text-sm text-muted-foreground line-clamp-2">

@@ -79,10 +79,10 @@ function Top10Card({ video, rank }: { video: Top10Video; rank: number }) {
     >
       <div className="flex items-end">
         {/* Large number */}
-        <div className="relative w-[80px] md:w-[100px] h-[140px] md:h-[180px] flex-shrink-0">
+        <div className="relative w-[70px] sm:w-[80px] md:w-[100px] h-[120px] sm:h-[140px] md:h-[180px] flex-shrink-0">
           <span
             className={cn(
-              "absolute -right-4 bottom-0 text-[140px] md:text-[180px] font-black leading-none select-none transition-transform duration-300",
+              "absolute -right-4 bottom-0 text-[120px] sm:text-[140px] md:text-[180px] font-black leading-none select-none transition-transform duration-300",
               "text-transparent bg-clip-text",
               "[-webkit-text-stroke:3px_var(--muted-foreground)]",
               isHovered && "scale-105"
@@ -98,8 +98,8 @@ function Top10Card({ video, rank }: { video: Top10Video; rank: number }) {
         {/* Video thumbnail */}
         <div
           className={cn(
-            "relative w-[100px] md:w-[130px] h-[140px] md:h-[180px] rounded overflow-hidden transition-all duration-300 -ml-4",
-            isHovered ? "scale-105 z-20 shadow-2xl" : "scale-100 z-10"
+            "relative w-[90px] sm:w-[100px] md:w-[130px] h-[120px] sm:h-[140px] md:h-[180px] rounded overflow-hidden transition-all duration-300 -ml-3 sm:-ml-4",
+            isHovered ? "md:scale-105 z-20 shadow-2xl" : "scale-100 z-10"
           )}
         >
           <Image
@@ -117,7 +117,7 @@ function Top10Card({ video, rank }: { video: Top10Video; rank: number }) {
 
       {/* Hover card */}
       {isHovered && (
-        <div className="absolute top-full left-[60px] md:left-[80px] right-0 w-[160px] md:w-[200px] bg-card rounded-b p-3 shadow-2xl z-30 -mt-1">
+        <div className="absolute top-full left-[52px] sm:left-[60px] md:left-[80px] right-0 w-[150px] sm:w-[160px] md:w-[200px] bg-card rounded-b p-2.5 md:p-3 shadow-2xl z-30 -mt-1">
           <div className="flex items-center gap-2 mb-2">
             <button
               onClick={handlePlayClick}
@@ -183,8 +183,8 @@ export function Top10Row({ title, videos }: Top10RowProps) {
   }
 
   return (
-    <div className="relative group/row mb-8">
-      <h2 className="text-foreground text-lg md:text-xl font-semibold mb-3 px-4 md:px-12 flex items-center gap-3">
+    <div className="relative group/row mb-6 md:mb-8">
+      <h2 className="text-foreground text-base sm:text-lg md:text-xl font-semibold mb-2 md:mb-3 px-3 sm:px-4 md:px-12 flex items-center gap-2 sm:gap-3">
         <span className="bg-primary text-primary-foreground px-2 py-0.5 text-sm font-bold rounded">
           TOP 10
         </span>
@@ -194,14 +194,14 @@ export function Top10Row({ title, videos }: Top10RowProps) {
       <div className="relative">
         <button
           onClick={() => scroll("left")}
-          className="absolute left-0 top-0 bottom-0 z-40 w-12 bg-background/50 opacity-0 group-hover/row:opacity-100 transition-opacity flex items-center justify-center hover:bg-background/80"
+          className="absolute left-0 top-0 bottom-0 z-40 hidden md:flex w-12 bg-background/50 opacity-0 group-hover/row:opacity-100 transition-opacity items-center justify-center hover:bg-background/80"
         >
           <ChevronLeft className="w-8 h-8 text-foreground" />
         </button>
 
         <div
           ref={scrollRef}
-          className="flex gap-6 overflow-x-auto scrollbar-hide px-4 md:px-12 pb-32"
+          className="flex gap-4 md:gap-6 overflow-x-auto scrollbar-hide px-3 sm:px-4 md:px-12 pb-6 md:pb-20"
         >
           {videos.slice(0, 10).map((video, index) => (
             <Top10Card key={video.id} video={video} rank={index + 1} />
@@ -210,7 +210,7 @@ export function Top10Row({ title, videos }: Top10RowProps) {
 
         <button
           onClick={() => scroll("right")}
-          className="absolute right-0 top-0 bottom-0 z-40 w-12 bg-background/50 opacity-0 group-hover/row:opacity-100 transition-opacity flex items-center justify-center hover:bg-background/80"
+          className="absolute right-0 top-0 bottom-0 z-40 hidden md:flex w-12 bg-background/50 opacity-0 group-hover/row:opacity-100 transition-opacity items-center justify-center hover:bg-background/80"
         >
           <ChevronRight className="w-8 h-8 text-foreground" />
         </button>
@@ -218,3 +218,4 @@ export function Top10Row({ title, videos }: Top10RowProps) {
     </div>
   )
 }
+

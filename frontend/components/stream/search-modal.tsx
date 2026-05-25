@@ -63,9 +63,9 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm">
-      <div className="max-w-4xl mx-auto px-4 pt-20">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 pt-16 sm:pt-20">
         {/* Search input */}
-        <div className="relative mb-8">
+        <div className="relative mb-6 sm:mb-8">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-muted-foreground" />
           <input
             ref={inputRef}
@@ -73,7 +73,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
             value={localQuery}
             onChange={(e) => setLocalQuery(e.target.value)}
             placeholder="Search for movies, TV shows..."
-            className="w-full bg-muted border border-border rounded-lg py-4 pl-14 pr-14 text-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full bg-muted border border-border rounded-lg py-3 sm:py-4 pl-11 sm:pl-14 pr-12 sm:pr-14 text-base sm:text-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <button
             onClick={onClose}
@@ -90,7 +90,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
               {filteredVideos.length} result{filteredVideos.length !== 1 && "s"} for &quot;{localQuery}&quot;
             </p>
             {filteredVideos.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                 {filteredVideos.map((video) => (
                   <button
                     key={video.id}
@@ -156,3 +156,5 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
     </div>
   )
 }
+
+

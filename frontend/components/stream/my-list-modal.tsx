@@ -36,18 +36,18 @@ export function MyListModal({ isOpen, onClose }: MyListModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-8 px-4"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-3 sm:py-6 md:py-8 px-2 sm:px-4"
       onClick={onClose}
     >
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
 
       <div
-        className="relative w-full max-w-4xl bg-card rounded-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-300 mt-16"
+        className="relative w-full max-w-4xl bg-card rounded-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-300 mt-8 sm:mt-12 md:mt-16"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-2xl font-bold">My List</h2>
+        <div className="flex items-center justify-between p-4 sm:p-5 md:p-6 border-b border-border">
+          <h2 className="text-xl sm:text-2xl font-bold">My List</h2>
           <button
             onClick={onClose}
             className="w-9 h-9 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
@@ -57,7 +57,7 @@ export function MyListModal({ isOpen, onClose }: MyListModalProps) {
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-4 sm:p-5 md:p-6">
           {myList.length === 0 ? (
             <div className="text-center py-16">
               <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
@@ -70,7 +70,7 @@ export function MyListModal({ isOpen, onClose }: MyListModalProps) {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4">
               {myList.map((video) => (
                 <div key={video.id} className="group relative">
                   <button
@@ -112,3 +112,5 @@ export function MyListModal({ isOpen, onClose }: MyListModalProps) {
     </div>
   )
 }
+
+

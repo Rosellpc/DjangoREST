@@ -80,14 +80,14 @@ export function VideoCard({
 
   return (
     <div
-      className="relative flex-shrink-0 w-[160px] md:w-[200px] lg:w-[240px] group cursor-pointer"
+      className="relative flex-shrink-0 w-[150px] sm:w-[180px] md:w-[210px] lg:w-[240px] group cursor-pointer"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => openVideoModal(video)}
     >
       <div
         className={`relative aspect-video rounded overflow-hidden transition-all duration-300 ${
-          isHovered ? "scale-110 z-20 shadow-2xl" : "scale-100 z-0"
+          isHovered ? "md:scale-110 z-20 shadow-2xl" : "scale-100 z-0"
         }`}
       >
         <Image
@@ -104,7 +104,7 @@ export function VideoCard({
       </div>
 
       {isHovered && (
-        <div className="absolute top-full left-0 right-0 bg-card rounded-b p-3 shadow-2xl z-20 -mt-1 scale-110 origin-top">
+        <div className="absolute top-full left-0 right-0 bg-card rounded-b p-2.5 md:p-3 shadow-2xl z-20 -mt-1 md:scale-110 origin-top hidden md:block">
           <div className="flex items-center gap-2 mb-2">
             <button
               onClick={handlePlayClick}
@@ -167,3 +167,5 @@ export function VideoCard({
     </div>
   )
 }
+
+

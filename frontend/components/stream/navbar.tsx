@@ -147,11 +147,15 @@ export function Navbar({ onSearchClick, onMyListClick }: NavbarProps) {
             className="flex items-center gap-2 cursor-pointer group"
           >
             {currentProfile && (
-              <div
-                className={`w-8 h-8 rounded ${getAvatarColor(currentProfile.id).bg} flex items-center justify-center text-white font-semibold text-sm`}
-              >
-                {currentProfile.isKids ? "K" : currentProfile.name.charAt(0).toUpperCase()}
-              </div>
+              currentProfile.avatarUrl ? (
+                <img src={currentProfile.avatarUrl} alt={currentProfile.name} className="h-8 w-8 rounded object-cover" />
+              ) : (
+                <div
+                  className={`w-8 h-8 rounded ${getAvatarColor(currentProfile.id).bg} flex items-center justify-center text-white font-semibold text-sm`}
+                >
+                  {currentProfile.isKids ? "K" : currentProfile.name.charAt(0).toUpperCase()}
+                </div>
+              )
             )}
             <ChevronDown
               className={`w-4 h-4 text-foreground transition-transform duration-200 ${
@@ -177,7 +181,11 @@ export function Navbar({ onSearchClick, onMyListClick }: NavbarProps) {
                       <div
                         className={`w-8 h-8 rounded ${getAvatarColor(profile.id).bg} flex items-center justify-center text-white text-sm font-medium`}
                       >
-                        {profile.isKids ? "K" : profile.name.charAt(0).toUpperCase()}
+                        {profile.avatarUrl ? (
+                          <img src={profile.avatarUrl} alt={profile.name} className="h-8 w-8 rounded object-cover" />
+                        ) : (
+                          profile.isKids ? "K" : profile.name.charAt(0).toUpperCase()
+                        )}
                       </div>
                       <span className="text-sm">{profile.name}</span>
                     </button>
@@ -214,7 +222,11 @@ export function Navbar({ onSearchClick, onMyListClick }: NavbarProps) {
                     <div
                       className={`w-6 h-6 rounded ${getAvatarColor(currentProfile.id).bg} flex items-center justify-center text-white text-xs font-medium`}
                     >
-                      {currentProfile.name.charAt(0).toUpperCase()}
+                      {currentProfile.avatarUrl ? (
+                        <img src={currentProfile.avatarUrl} alt={currentProfile.name} className="h-6 w-6 rounded object-cover" />
+                      ) : (
+                        currentProfile.name.charAt(0).toUpperCase()
+                      )}
                     </div>
                   )}
                   <div>

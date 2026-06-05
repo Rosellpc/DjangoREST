@@ -164,6 +164,10 @@ Suscripciones:
 - Los planes iniciales `basic`, `standard` y `premium` se cargan mediante migracion.
 - El frontend usa `/api/catalog` y `/api/backend/...` como proxy hacia Django.
 
+## Deploy
+
+El proceso completo de despliegue en AWS esta documentado en [`docs/deploy-aws.md`](docs/deploy-aws.md).
+
 ## Estado Actual
 
 Validado localmente:

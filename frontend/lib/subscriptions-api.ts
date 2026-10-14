@@ -52,7 +52,6 @@ export interface ApiProfile {
   autoplay_next_episode: boolean
   autoplay_previews: boolean
   has_pin: boolean
-  pin: string
   game_handle: string
   created_at: string
   updated_at: string
@@ -81,6 +80,9 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!token) throw new ApiAuthError()
 
   const headers = new Headers(init.headers)
+  const profileId = window.localStorage.getItem("streamflix_profile_id")
+  const profileAccess = profileId ? window.sessionStorage.getItem(`profile-access-${profileId}`) : null
+  if (profileAccess && !headers.has("X-Profile-Access")) headers.set("X-Profile-Access", profileAccess)
   headers.set("authorization", `Bearer ${token}`)
   if (!headers.has("content-type") && init.body) {
     headers.set("content-type", "application/json")
@@ -125,8 +127,7 @@ export async function listPlans(): Promise<ApiPlan[]> {
 }
 
 export async function listUserSubscriptions(): Promise<ApiSubscription[]> {
-  const payload = await apiFetch<ApiPage<ApiSubscription>>("subscriptions/subscriptions/")
-  return payload.results ?? []
+  return fetchAllPages<ApiSubscription>("subscriptions/subscriptions/")
 }
 
 export async function createUserSubscription(
@@ -140,13 +141,21 @@ export async function createUserSubscription(
 ): Promise<ApiSubscription> {
   return apiFetch<ApiSubscription>("subscriptions/subscriptions/", {
     method: "POST",
-    body: JSON.stringify({ plan_id: planId, status: "active", ...billing }),
+    body: JSON.stringify({ plan_id: planId, ...billing }),
   })
 }
 
 export async function listProfiles(): Promise<ApiProfile[]> {
-  const payload = await apiFetch<ApiPage<ApiProfile>>("subscriptions/profiles/")
-  return payload.results ?? []
+  return fetchAllPages<ApiProfile>("subscriptions/profiles/")
+}
+
+export async function verifyProfilePin(profileId: number, pin: string): Promise<boolean> {
+  const result = await apiFetch<{ verified: boolean; access_token: string }>(
+    `subscriptions/profiles/${profileId}/verify-pin/`,
+    { method: "POST", body: JSON.stringify({ pin }) }
+  )
+  window.sessionStorage.setItem(`profile-access-${profileId}`, result.access_token)
+  return result.verified
 }
 
 export async function createProfile(payload: {
@@ -184,17 +193,20 @@ export async function updateProfile(
 ): Promise<ApiProfile> {
   return apiFetch<ApiProfile>(`subscriptions/profiles/${profileId}/`, {
     method: "PATCH",
+    headers: { "X-Profile-Access": window.sessionStorage.getItem(`profile-access-${profileId}`) ?? "" },
     body: JSON.stringify(payload),
   })
 }
 
 export async function deleteProfile(profileId: number): Promise<void> {
-  await apiFetch<void>(`subscriptions/profiles/${profileId}/`, { method: "DELETE" })
+  await apiFetch<void>(`subscriptions/profiles/${profileId}/`, {
+    method: "DELETE",
+    headers: { "X-Profile-Access": window.sessionStorage.getItem(`profile-access-${profileId}`) ?? "" },
+  })
 }
 
 export async function listMyListItems(): Promise<ApiMyListItem[]> {
-  const payload = await apiFetch<ApiPage<ApiMyListItem>>("subscriptions/my-list/")
-  return payload.results ?? []
+  return fetchAllPages<ApiMyListItem>("subscriptions/my-list/")
 }
 
 export async function createMyListItem(profileId: number, filmId: number): Promise<ApiMyListItem> {
@@ -209,8 +221,18 @@ export async function deleteMyListItem(itemId: number): Promise<void> {
 }
 
 export async function listWatchHistory(): Promise<ApiWatchHistoryItem[]> {
-  const payload = await apiFetch<ApiPage<ApiWatchHistoryItem>>("subscriptions/history/")
-  return payload.results ?? []
+  return fetchAllPages<ApiWatchHistoryItem>("subscriptions/history/")
+}
+
+async function fetchAllPages<T>(path: string): Promise<T[]> {
+  const items: T[] = []
+  let page = 1
+  while (true) {
+    const payload = await apiFetch<ApiPage<T>>(`${path}?page=${page}`)
+    items.push(...payload.results)
+    if (!payload.next) return items
+    page += 1
+  }
 }
 
 export async function createWatchHistoryItem(payload: {

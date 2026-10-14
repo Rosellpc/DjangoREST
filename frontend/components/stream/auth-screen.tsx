@@ -5,6 +5,7 @@ import type { FormEvent } from "react"
 import { Loader2, LogIn, ShieldCheck, UserPlus } from "lucide-react"
 
 import { useAuth } from "@/lib/auth-context"
+import { BrandLogo } from "@/components/brand-logo"
 
 type Mode = "login" | "register"
 
@@ -47,7 +48,7 @@ export function AuthScreen() {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/60 to-transparent" />
         <div className="relative z-10 flex h-full max-w-2xl flex-col justify-end p-12">
-          <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-primary">STREAMFLIX</p>
+          <BrandLogo className="mb-4" />
           <h1 className="text-5xl font-bold leading-tight">Tu catalogo conectado a Django.</h1>
           <p className="mt-5 max-w-xl text-base text-muted-foreground">
             Inicia sesion para guardar perfiles, lista personal e historial directamente en la base de datos.
@@ -63,7 +64,7 @@ export function AuthScreen() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,90,95,0.25),transparent_35%),radial-gradient(circle_at_85%_85%,rgba(255,130,70,0.15),transparent_35%)] lg:hidden" />
         <div className="relative z-10 w-full max-w-md">
           <div className="mb-8 lg:hidden">
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-primary">STREAMFLIX</p>
+            <BrandLogo />
             <h1 className="mt-3 text-3xl font-bold">Bienvenido de vuelta</h1>
             <p className="mt-2 text-sm text-muted-foreground">Tu experiencia personalizada empieza aqui.</p>
           </div>

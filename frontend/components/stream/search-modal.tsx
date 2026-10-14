@@ -3,22 +3,15 @@
 import { useEffect, useRef, useState } from "react"
 import { Search, X } from "lucide-react"
 import Image from "next/image"
-import { useVideo } from "@/lib/video-context"
-import { trendingNow, topRated, newReleases, actionMovies } from "@/lib/video-data"
-import { getPosterByIndex, getVideoByIndex } from "@/lib/local-media"
-
-const allVideos = [...trendingNow, ...topRated, ...newReleases, ...actionMovies].map((video, index) => ({
-  ...video,
-  thumbnail: getPosterByIndex(index),
-  videoSrc: getVideoByIndex(index),
-}))
+import { useVideo, type Video } from "@/lib/video-context"
 
 interface SearchModalProps {
+  videos: Video[]
   isOpen: boolean
   onClose: () => void
 }
 
-export function SearchModal({ isOpen, onClose }: SearchModalProps) {
+export function SearchModal({ isOpen, onClose, videos: allVideos }: SearchModalProps) {
   const { searchQuery, setSearchQuery, openVideoModal } = useVideo()
   const inputRef = useRef<HTMLInputElement>(null)
   const [localQuery, setLocalQuery] = useState(searchQuery)

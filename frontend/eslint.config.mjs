@@ -5,6 +5,10 @@ const config = [
   ...nextCoreWebVitals,
   ...nextTypeScript,
   {
+    files: ["tests/**/*.cjs"],
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
+  {
     ignores: [".next/**", "node_modules/**", "out/**", "build/**", "next-env.d.ts"],
   },
 ]

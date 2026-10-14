@@ -15,6 +15,8 @@ async function proxy(request: NextRequest, path: string[]) {
   const headers = new Headers()
   const authorization = request.headers.get("authorization")
   if (authorization) headers.set("authorization", authorization)
+  const profileAccess = request.headers.get("x-profile-access")
+  if (profileAccess) headers.set("x-profile-access", profileAccess)
   headers.set("accept", "application/json")
 
   const contentType = request.headers.get("content-type")

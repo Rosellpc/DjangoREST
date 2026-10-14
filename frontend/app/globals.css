@@ -1,6 +1,88 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+.brand-logo { display: inline-flex; align-items: center; gap: .65rem; color: #dc143c; text-decoration: none; flex-shrink: 0; }
+.brand-wordmark { font-family: "Space Grotesk", sans-serif; font-weight: 300; font-size: clamp(.875rem, 1.4vw, 1.125rem); line-height: 1.5; letter-spacing: .38em; margin-right: -.38em; }
+.brand-logo:hover { opacity: .85; }
+.brand-logo:focus-visible { outline: 2px solid #dc143c; outline-offset: 6px; border-radius: .25rem; }
+.liquid-glass {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid #ffffff26;
+  border-radius: 1.5rem;
+  background: #19191ee8;
+  color: #f6f4f2;
+  box-shadow: inset 0 1px 0 #ffffff26, inset 0 -1px 0 #ffffff08, 0 12px 40px #00000030;
+}
+.liquid-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(115deg, #ffffff12, #ffffff02 35%, transparent 60%, #ffffff08);
+}
+.liquid-glass::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, #ffffff70, transparent);
+}
+.glass-navbar { overflow: visible; }
+.glass-dropdown { position: absolute; background: #17171ceF; border-radius: 1.25rem; }
+.glass-nav-link { display: flex; align-items: center; justify-content: center; gap: .5rem; padding: .65rem 1rem; border: 1px solid transparent; border-radius: 999px; color: #d0cdd0; font-size: .8125rem; transition: background .2s, color .2s, border-color .2s; }
+.glass-nav-link:hover, .glass-mobile-link:hover { background: #ffffff0d; color: white; }
+.glass-nav-link-active { background: linear-gradient(145deg, #ffffff1a, #ffffff08); border-color: #ffffff20; color: #fff; box-shadow: inset 0 1px 0 #ffffff18, 0 2px 6px #00000012; }
+.glass-mobile-link { color: #d0cdd0; border: 1px solid transparent; }
+.glass-mobile-link.glass-nav-link-active { border-color: #ffffff20; }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .liquid-glass { background: #17171b99; -webkit-backdrop-filter: blur(28px) saturate(165%); backdrop-filter: blur(28px) saturate(165%); }
+  .glass-dropdown { background: #17171be6; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .liquid-glass, .glass-dropdown { background: #1b1b20; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .liquid-glass::before { opacity: .3; }
+}
+.footer-link { display: flex; align-items: center; justify-content: space-between; gap: 3rem; color: var(--foreground); transition: color .2s; }
+.footer-link:hover { color: #dc143c; }
+
+.library-container { width: min(100%, 1440px); margin-inline: auto; padding-inline: clamp(1rem, 4vw, 3rem); }
+.cinema-library { --background: #101011; --card: #1a1a1c; --foreground: #f3f0ea; --muted-foreground: #a2a0a0; }
+.cinema-eyebrow { display: flex; align-items: center; gap: .6rem; font-size: .625rem; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; }
+.cinema-button-primary, .cinema-button-secondary { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border-radius: .5rem; padding: .75rem 1.1rem; font-size: .8125rem; font-weight: 500; transition: background .2s, border-color .2s; }
+.cinema-button-primary { background: var(--primary); color: white; }
+.cinema-button-primary:hover { filter: brightness(1.12); }
+.cinema-button-secondary { border: 1px solid #ffffff26; background: #ffffff05; color: var(--foreground); }
+.cinema-button-secondary:hover { background: #ffffff0e; border-color: #ffffff55; }
+.movie-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem 1rem; }
+.browser-select { border-left: 1px solid #ffffff12; padding-left: .75rem; }
+.browser-select select { max-width: 100%; background: transparent; padding: .5rem .3rem; color: var(--muted-foreground); font-size: .75rem; }
+.browser-select option { background: #1a1a1c; color: #f3f0ea; }
+.profile-menu-item { display: flex; align-items: center; gap: .75rem; width: 100%; padding: .7rem .75rem; border-radius: .5rem; text-align: left; font-size: .8125rem; }
+.profile-menu-item:hover { background: #ffffff08; }
+.mobile-nav-item { display: flex; flex-direction: column; align-items: center; gap: .3rem; padding: .5rem .25rem; border-radius: .75rem; font-size: .625rem; }
+.pagination-button { display: flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border: 1px solid #ffffff20; border-radius: .5rem; }
+.pagination-button:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+.pagination-button:disabled { opacity: .25; cursor: not-allowed; }
+.movie-hero-glow { position: absolute; right: -10%; top: -30%; width: 65%; height: 110%; pointer-events: none; background: radial-gradient(ellipse, #e63c2720, transparent 65%); }
+.hero-poster { position: absolute; width: 43%; aspect-ratio: 2/3; overflow: hidden; border-radius: .8rem; border: 1px solid #ffffff25; box-shadow: 0 20px 60px #0009; }
+.hero-poster-0 { left: 27%; top: 8%; z-index: 3; transform: rotate(-4deg); }
+.hero-poster-1 { right: 0; top: 18%; z-index: 2; transform: rotate(9deg); filter: brightness(.7); }
+.hero-poster-2 { left: 2%; top: 20%; z-index: 1; transform: rotate(-12deg); filter: brightness(.55); }
+.movie-dialog { width: min(90vw, 800px); max-height: 90dvh; margin: auto; padding: 0; overflow: auto; border: 1px solid #ffffff20; border-radius: 1rem; background: #1a1a1c; color: #f3f0ea; }
+.movie-dialog::backdrop { background: #000c; backdrop-filter: blur(8px); }
+.skip-link { position: fixed; z-index: 100; left: 1rem; top: -5rem; border-radius: .5rem; background: var(--foreground); color: var(--background); padding: .75rem; }
+.skip-link:focus { top: 1rem; }
+.cinema-library :focus-visible, header :focus-visible, nav :focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; }
+@media (min-width: 640px) { .movie-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2rem 1.25rem; } }
+@media (min-width: 1024px) { .movie-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2rem 1.25rem; } }
+@media (prefers-reduced-motion: reduce) { .cinema-library *, header *, nav * { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
+
 @custom-variant dark (&:is(.dark *));
 
 :root {

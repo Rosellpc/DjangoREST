@@ -10,6 +10,7 @@ import {
   type Profile,
 } from "@/lib/profile-context"
 import { getPosterByIndex } from "@/lib/local-media"
+import { prepareProfileAvatar } from "@/lib/profile-avatar"
 
 interface ProfileEditorProps {
   profile: Profile | null
@@ -32,6 +33,8 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
   const [gameHandle, setGameHandle] = useState("")
   const [hasPin, setHasPin] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState("")
+  const [avatarLoading, setAvatarLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<"posts" | "saved" | "private">("posts")
 
   const [currentView, setCurrentView] = useState<EditorView>("main")
@@ -56,38 +59,44 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
     }, 0)
   }, [profile, profiles])
 
-  const handleSave = () => {
-    if (!name.trim()) return
-
-    if (isNewProfile) {
-      addProfile({
-        name: name.trim(),
-        avatarUrl: "",
-        isKids,
-        maturityRating: isKids ? "G" : maturityRating,
-        language,
-        autoplayNextEpisode: autoplayNext,
-        autoplayPreviews: autoplayPreviews,
-        hasPin: false,
-        avatarUrl,
-        gameHandle: gameHandle.trim() || undefined,
-      })
-    } else if (profile) {
-      updateProfile(profile.id, {
-        name: name.trim(),
-        isKids,
-        maturityRating: isKids ? "G" : maturityRating,
-        language,
-        autoplayNextEpisode: autoplayNext,
-        autoplayPreviews: autoplayPreviews,
-        avatarUrl,
-        gameHandle: gameHandle.trim() || undefined,
-      })
+  const handleSave = async () => {
+    if (!name.trim() || avatarLoading || saving) return
+    setSaving(true)
+    setPinError("")
+    try {
+      if (isNewProfile) {
+        await addProfile({
+          name: name.trim(),
+          isKids,
+          maturityRating: isKids ? "G" : maturityRating,
+          language,
+          autoplayNextEpisode: autoplayNext,
+          autoplayPreviews: autoplayPreviews,
+          hasPin: false,
+          avatarUrl,
+          gameHandle: gameHandle.trim() || undefined,
+        })
+      } else if (profile) {
+        await updateProfile(profile.id, {
+          name: name.trim(),
+          isKids,
+          maturityRating: isKids ? "G" : maturityRating,
+          language,
+          autoplayNextEpisode: autoplayNext,
+          autoplayPreviews: autoplayPreviews,
+          avatarUrl,
+          gameHandle: gameHandle.trim() || undefined,
+        })
+      }
+      onClose()
+    } catch (error) {
+      setPinError(error instanceof Error ? error.message : "Could not save profile.")
+    } finally {
+      setSaving(false)
     }
-    onClose()
   }
 
-  const handleSetPin = () => {
+  const handleSetPin = async () => {
     if (newPin.length !== 4) {
       setPinError("PIN must be 4 digits")
       return
@@ -97,7 +106,12 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
       return
     }
     if (profile) {
-      setPin(profile.id, newPin)
+      try {
+        await setPin(profile.id, newPin)
+      } catch {
+        setPinError("Could not save PIN. Unlock the profile first and try again.")
+        return
+      }
       setHasPin(true)
     }
     setCurrentView("main")
@@ -106,19 +120,28 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
     setPinError("")
   }
 
-  const handleRemovePin = () => {
+  const handleRemovePin = async () => {
     if (profile) {
-      removePin(profile.id)
+      try {
+        await removePin(profile.id)
+      } catch {
+        setPinError("Could not remove PIN. Unlock the profile first and try again.")
+        return
+      }
       setHasPin(false)
     }
     setCurrentView("main")
   }
 
-  const handleDelete = () => {
-    if (profile) {
-      deleteProfile(profile.id)
+  const handleDelete = async () => {
+    try {
+      if (profile) {
+        await deleteProfile(profile.id)
+      }
+      onClose()
+    } catch {
+      setPinError("Could not delete profile. Unlock the profile first and try again.")
     }
-    onClose()
   }
 
   const avatarColor = AVATAR_COLORS[selectedColor]
@@ -175,17 +198,26 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
             Upload photo
             <input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
+              disabled={avatarLoading}
               className="hidden"
-              onChange={(e) => {
+              onChange={async (e) => {
                 const file = e.target.files?.[0]
+                e.target.value = ""
                 if (!file) return
-                const reader = new FileReader()
-                reader.onload = () => setAvatarUrl(String(reader.result || ""))
-                reader.readAsDataURL(file)
+                setAvatarLoading(true)
+                setPinError("")
+                try {
+                  setAvatarUrl(await prepareProfileAvatar(file))
+                } catch (error) {
+                  setPinError(error instanceof Error ? error.message : "No pudimos cargar la foto.")
+                } finally {
+                  setAvatarLoading(false)
+                }
               }}
             />
           </label>
+          {avatarLoading && <p role="status" className="text-xs text-muted-foreground">Preparando foto…</p>}
           <button
             onClick={() => setCurrentView("avatar")}
             className="text-sm text-muted-foreground hover:text-foreground"
@@ -411,10 +443,10 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
       <div className="mt-8 flex flex-col gap-4 border-t border-border pt-8 md:flex-row">
         <button
           onClick={handleSave}
-          disabled={!name.trim()}
+          disabled={!name.trim() || avatarLoading || saving}
           className="flex-1 rounded-xl bg-primary px-6 py-3 font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Save
+          {saving ? "Saving…" : avatarLoading ? "Preparing photo…" : "Save"}
         </button>
         <button
           onClick={onClose}
@@ -703,6 +735,7 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-3xl mx-auto">
+        {pinError && currentView !== "pin" && <p role="alert" className="text-red-500 mb-4">{pinError}</p>}
         {currentView === "main" && renderMainView()}
         {currentView === "avatar" && renderAvatarView()}
         {currentView === "language" && renderLanguageView()}

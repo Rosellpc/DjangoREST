@@ -9,6 +9,7 @@ import {
   listProfiles,
   listUserSubscriptions,
   updateProfile as updateProfileRequest,
+  verifyProfilePin,
   type ApiProfile,
 } from "@/lib/subscriptions-api"
 
@@ -92,14 +93,14 @@ interface ProfileContextType {
   profiles: Profile[]
   currentProfile: Profile | null
   isProfileSelected: boolean
-  addProfile: (profile: Omit<Profile, "id" | "createdAt">) => void
-  updateProfile: (id: string, updates: Partial<Profile>) => void
-  deleteProfile: (id: string) => void
+  addProfile: (profile: Omit<Profile, "id" | "createdAt">) => Promise<void>
+  updateProfile: (id: string, updates: Partial<Profile>) => Promise<void>
+  deleteProfile: (id: string) => Promise<void>
   selectProfile: (id: string) => void
   switchProfile: () => void
-  verifyPin: (id: string, pin: string) => boolean
-  setPin: (id: string, pin: string) => void
-  removePin: (id: string) => void
+  verifyPin: (id: string, pin: string) => Promise<boolean>
+  setPin: (id: string, pin: string) => Promise<void>
+  removePin: (id: string) => Promise<void>
   canAddMoreProfiles: boolean
   showManageProfiles: boolean
   setShowManageProfiles: (show: boolean) => void
@@ -120,7 +121,6 @@ function mapApiProfile(api: ApiProfile): Profile {
     autoplayNextEpisode: api.autoplay_next_episode,
     autoplayPreviews: api.autoplay_previews,
     hasPin: api.has_pin,
-    pin: api.pin,
     gameHandle: api.game_handle || undefined,
     createdAt: new Date(api.created_at),
   }
@@ -165,7 +165,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         const selected = mappedProfiles.find((profile) => profile.id === remembered) ?? mappedProfiles[0] ?? null
 
         setCurrentProfile(selected)
-        setIsProfileSelected(Boolean(selected))
+        setIsProfileSelected(Boolean(selected && !selected.hasPin))
         if (selected) notifyProfileChanged(selected.id)
       } catch (error) {
         if (!mounted) return
@@ -184,54 +184,34 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const addProfile = useCallback(
-    (profileData: Omit<Profile, "id" | "createdAt">) => {
+    async (profileData: Omit<Profile, "id" | "createdAt">) => {
       if (profiles.length >= maxProfiles) return
-
-      if (!apiEnabled) {
-        const localId = `local-${Date.now()}`
-        setProfiles((prev) => [
-          ...prev,
-          {
-            ...profileData,
-            id: localId,
-            createdAt: new Date(),
-          },
-        ])
-        return
-      }
-
-      void (async () => {
-        const created = await createProfile({
-          name: profileData.name,
-          is_kids: profileData.isKids,
-          avatar_key: profileData.avatarUrl,
-          maturity_rating: profileData.isKids ? "G" : profileData.maturityRating,
-          language: profileData.language,
-          autoplay_next_episode: profileData.autoplayNextEpisode,
-          autoplay_previews: profileData.autoplayPreviews,
-          has_pin: profileData.hasPin,
-          pin: profileData.pin ?? "",
-          game_handle: profileData.gameHandle ?? "",
-        })
-        const profile = mapApiProfile(created)
-        setProfiles((prev) => [...prev, profile])
-      })()
+      if (!apiEnabled) throw new Error("Profile service is unavailable. Please sign in again.")
+      const created = await createProfile({
+        name: profileData.name,
+        is_kids: profileData.isKids,
+        avatar_key: profileData.avatarUrl,
+        maturity_rating: profileData.isKids ? "G" : profileData.maturityRating,
+        language: profileData.language,
+        autoplay_next_episode: profileData.autoplayNextEpisode,
+        autoplay_previews: profileData.autoplayPreviews,
+        has_pin: profileData.hasPin,
+        pin: profileData.pin ?? "",
+        game_handle: profileData.gameHandle ?? "",
+      })
+      const profile = mapApiProfile(created)
+      setProfiles((prev) => [...prev, profile])
     },
     [apiEnabled, maxProfiles, profiles.length]
   )
 
   const updateProfile = useCallback(
-    (id: string, updates: Partial<Profile>) => {
-      setProfiles((prev) => prev.map((profile) => (profile.id === id ? { ...profile, ...updates } : profile)))
-      if (currentProfile?.id === id) {
-        setCurrentProfile((prev) => (prev ? { ...prev, ...updates } : null))
-      }
-
-      if (!apiEnabled) return
+    async (id: string, updates: Partial<Profile>) => {
+      if (!apiEnabled) throw new Error("Profile service is unavailable. Please sign in again.")
       const numericId = Number(id)
       if (Number.isNaN(numericId)) return
 
-      void updateProfileRequest(numericId, {
+      const saved = await updateProfileRequest(numericId, {
         name: updates.name,
         is_kids: updates.isKids,
         avatar_key: updates.avatarUrl,
@@ -243,24 +223,28 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         pin: updates.pin ?? (updates.hasPin === false ? "" : undefined),
         game_handle: updates.gameHandle,
       })
+      if (updates.pin && saved.has_pin) await verifyProfilePin(numericId, updates.pin)
+      if (!saved.has_pin) window.sessionStorage.removeItem(`profile-access-${id}`)
+      const mapped = mapApiProfile(saved)
+      setProfiles((prev) => prev.map((profile) => profile.id === id ? mapped : profile))
+      if (currentProfile?.id === id) setCurrentProfile(mapped)
     },
     [apiEnabled, currentProfile?.id]
   )
 
   const deleteProfile = useCallback(
-    (id: string) => {
+    async (id: string) => {
       if (profiles.length <= 1) return
-
+      if (!apiEnabled) throw new Error("Profile service is unavailable. Please sign in again.")
+      const numericId = Number(id)
+      if (Number.isNaN(numericId)) return
+      await deleteProfileRequest(numericId)
+      window.sessionStorage.removeItem(`profile-access-${id}`)
       setProfiles((prev) => prev.filter((profile) => profile.id !== id))
       if (currentProfile?.id === id) {
         setCurrentProfile(null)
         setIsProfileSelected(false)
       }
-
-      if (!apiEnabled) return
-      const numericId = Number(id)
-      if (Number.isNaN(numericId)) return
-      void deleteProfileRequest(numericId)
     },
     [apiEnabled, currentProfile?.id, profiles.length]
   )
@@ -269,6 +253,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     (id: string) => {
       const selected = profiles.find((profile) => profile.id === id)
       if (!selected) return
+      if (selected.hasPin && !window.sessionStorage.getItem(`profile-access-${id}`)) {
+        setCurrentProfile(null)
+        setIsProfileSelected(false)
+        return
+      }
       setCurrentProfile(selected)
       setIsProfileSelected(true)
       setShowManageProfiles(false)
@@ -284,23 +273,26 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const verifyPin = useCallback(
-    (id: string, pin: string) => {
-      const profile = profiles.find((candidate) => candidate.id === id)
-      return profile?.pin === pin
+    async (id: string, pin: string) => {
+      try {
+        return await verifyProfilePin(Number(id), pin)
+      } catch {
+        return false
+      }
     },
-    [profiles]
+    []
   )
 
   const setPin = useCallback(
-    (id: string, pin: string) => {
-      updateProfile(id, { hasPin: true, pin })
+    async (id: string, pin: string) => {
+      await updateProfile(id, { hasPin: true, pin })
     },
     [updateProfile]
   )
 
   const removePin = useCallback(
-    (id: string) => {
-      updateProfile(id, { hasPin: false, pin: undefined })
+    async (id: string) => {
+      await updateProfile(id, { hasPin: false, pin: undefined })
     },
     [updateProfile]
   )

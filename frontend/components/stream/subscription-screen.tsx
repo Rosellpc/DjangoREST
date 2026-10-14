@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { Check, ChevronLeft, CreditCard, Loader2, Lock, LogOut, Play } from "lucide-react"
 
 import { useAuth } from "@/lib/auth-context"
+import { BrandLogo } from "@/components/brand-logo"
 import {
   createUserSubscription,
   listPlans,
@@ -165,7 +166,7 @@ export function SubscriptionScreen({ onReady }: SubscriptionScreenProps) {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <header className="flex items-center justify-between border-b border-border px-4 py-5 md:px-12">
-        <div className="text-2xl font-bold tracking-tight text-primary">STREAMFLIX</div>
+        <BrandLogo />
         <button
           onClick={() => void signOut()}
           className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground"

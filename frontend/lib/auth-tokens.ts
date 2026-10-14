@@ -29,6 +29,9 @@ export function setTokens(access: string, refresh?: string) {
 
 export function clearTokens() {
   if (typeof window === "undefined") return
+  Object.keys(window.sessionStorage)
+    .filter((key) => key.startsWith("profile-access-"))
+    .forEach((key) => window.sessionStorage.removeItem(key))
   ;[
     ACCESS_TOKEN_KEY,
     REFRESH_TOKEN_KEY,

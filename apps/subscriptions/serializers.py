@@ -1,6 +1,11 @@
+import base64
+import binascii
+
 from rest_framework import serializers
+from django.contrib.auth.hashers import make_password
 
 from .models import MyListItem, Profile, SubscriptionPlan, UserSubscription, WatchHistory
+from .profile_access import require_profile_access
 
 
 class SubscriptionPlanSerializer(serializers.ModelSerializer):
@@ -43,7 +48,7 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "user", "created_at", "updated_at", "plan"]
+        read_only_fields = ["id", "user", "created_at", "updated_at", "plan", "status", "starts_at", "ends_at", "payment_provider"]
 
     def validate_payment_last4(self, value):
         if value and (not value.isdigit() or len(value) != 4):
@@ -61,12 +66,13 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
 
 
 class ProfileSerializer(serializers.ModelSerializer):
+    avatar_key = serializers.CharField(required=False, allow_blank=True, max_length=262144)
     pin = serializers.CharField(
         source="pin_code",
         required=False,
         allow_blank=True,
         max_length=4,
-        write_only=False,
+        write_only=True,
     )
 
     class Meta:
@@ -92,7 +98,35 @@ class ProfileSerializer(serializers.ModelSerializer):
     def validate_pin(self, value):
         if value and (not value.isdigit() or len(value) != 4):
             raise serializers.ValidationError("PIN must be 4 digits.")
+        return make_password(value) if value else ""
+
+    def validate_avatar_key(self, value):
+        if not value.startswith("data:"):
+            if len(value) > 2048:
+                raise serializers.ValidationError("La dirección de la foto es demasiado larga.")
+            return value
+        try:
+            header, encoded = value.split(",", 1)
+            signatures = {
+                "data:image/jpeg;base64": lambda data: data.startswith(b"\xff\xd8\xff"),
+                "data:image/png;base64": lambda data: data.startswith(b"\x89PNG\r\n\x1a\n"),
+                "data:image/webp;base64": lambda data: data.startswith(b"RIFF") and data[8:12] == b"WEBP",
+            }
+            decoded = base64.b64decode(encoded, validate=True)
+            if header not in signatures or not signatures[header](decoded):
+                raise ValueError
+        except (ValueError, binascii.Error):
+            raise serializers.ValidationError("Selecciona una foto JPG, PNG o WebP válida.")
         return value
+
+    def validate(self, attrs):
+        enabled = attrs.get("has_pin", self.instance.has_pin if self.instance else False)
+        pin = attrs.get("pin_code", self.instance.pin_code if self.instance else "")
+        if enabled and not pin:
+            raise serializers.ValidationError({"pin": "A PIN is required when profile lock is enabled."})
+        if not enabled:
+            attrs["pin_code"] = ""
+        return attrs
 
 
 class FilmIdValidationMixin:
@@ -105,6 +139,8 @@ class FilmIdValidationMixin:
         request = self.context.get("request")
         if request and profile.subscription.user_id != request.user.id:
             raise serializers.ValidationError("You do not have access to this profile.")
+        if request:
+            require_profile_access(request, profile)
         return profile
 
 

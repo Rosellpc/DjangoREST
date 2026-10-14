@@ -77,7 +77,7 @@ class Profile(models.Model):
     )
     name = models.CharField(max_length=40)
     is_kids = models.BooleanField(default=False)
-    avatar_key = models.CharField(max_length=100, blank=True)
+    avatar_key = models.TextField(blank=True)
     maturity_rating = models.CharField(
         max_length=10,
         choices=MaturityRating.choices,
@@ -87,7 +87,7 @@ class Profile(models.Model):
     autoplay_next_episode = models.BooleanField(default=True)
     autoplay_previews = models.BooleanField(default=True)
     has_pin = models.BooleanField(default=False)
-    pin_code = models.CharField(max_length=4, blank=True)
+    pin_code = models.CharField(max_length=128, blank=True)
     game_handle = models.CharField(max_length=16, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -20,6 +20,7 @@ import { VideoProvider, useVideo } from "@/lib/video-context"
 import { ProfileProvider, useProfile } from "@/lib/profile-context"
 import { fetchCatalog, toStreamVideo, type StreamVideo } from "@/lib/catalog-api"
 import { getPosterByIndex, getVideoByIndex } from "@/lib/local-media"
+import { SiteFooter } from "@/components/stream/site-footer"
 
 function StreamingApp() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -128,9 +129,10 @@ function StreamingApp() {
 
   return (
     <main className="min-h-screen bg-background pb-24 md:pb-0">
-      <Navbar onSearchClick={() => setIsSearchOpen(true)} onMyListClick={() => setIsMyListOpen(true)} />
+      <Navbar onSearchClick={() => setIsSearchOpen(true)} />
 
       <HeroBanner
+        video={catalog[0]}
         title={featuredContent.title}
         description={featuredContent.description}
         backgroundImage={featuredContent.backgroundImage}
@@ -189,15 +191,10 @@ function StreamingApp() {
         </div>
       )}
 
-      <footer className="py-12 px-4 md:px-12 border-t border-border mt-8">
-        <div className="max-w-6xl mx-auto">
-          <p className="text-muted-foreground text-sm mb-6">Questions? Contact us.</p>
-          <p className="text-muted-foreground text-xs mt-8">StreamFlix Demo</p>
-        </div>
-      </footer>
+      <SiteFooter />
 
       <VideoModal />
-      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      <SearchModal videos={catalog} isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       <MyListModal isOpen={isMyListOpen} onClose={() => setIsMyListOpen(false)} />
 
       <VideoPlayer

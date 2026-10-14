@@ -122,6 +122,8 @@ Frontend:
 ```powershell
 cd frontend
 pnpm lint
+pnpm typecheck
+pnpm test
 pnpm build
 pnpm dev
 ```
@@ -177,5 +179,23 @@ uv run python manage.py check
 System check identified no issues
 
 uv run pytest
-24 passed
+37 passed
 ```
+
+### Interfaz
+
+- `/` mantiene la pagina principal con su portada, feed y filas de peliculas. El logo STREAMFLIX lleva siempre a esta ruta.
+- La navegacion muestra Movies (`/movies`) y My List (`/my-list`), tambien en movil. Home, TV Shows y New & Popular no aparecen en el menu.
+- Movies incluye una portada, catalogo completo con busqueda por titulo o descripcion, filtros por clasificacion y duracion, ordenamiento y paginacion de 24 peliculas.
+- My List muestra la coleccion del perfil activo, permite reproducir, consultar detalles y quitar peliculas, y ofrece estados de carga, error y lista vacia.
+- Las paginas nuevas usan los posters y videos locales existentes. Los pagos siguen siendo simulados.
+- Las fotos de perfil admiten JPG, PNG y WebP de hasta 5 MB. El navegador las reduce a un maximo de 256 pixeles antes de guardarlas; la API limita y valida la imagen codificada.
+
+### Seguridad y pruebas
+
+- Los PIN se guardan con hash y nunca se devuelven en la API. `POST /api/subscriptions/profiles/{id}/verify-pin/` verifica el PIN con limite de intentos y entrega un permiso de una hora. Las operaciones sobre perfiles bloqueados, historial y mi lista requieren `X-Profile-Access`; cambiar el PIN invalida el permiso anterior.
+- Las suscripciones se pueden crear y consultar. El servidor controla estado, fechas y proveedor; la activacion sigue siendo simulada. No se permiten modificaciones ni eliminaciones desde la API de usuario.
+- El catalogo y las listas personales recorren todas las paginas. La busqueda del frontend usa el catalogo de la API.
+- Las migraciones incluyen el estado de las tablas existentes del catalogo y convierten los PIN anteriores a hashes. Ejecutar `uv run python manage.py migrate` al actualizar.
+- `pnpm test` verifica paginacion y permisos de perfil en el cliente. Las pruebas del backend incluyen registro, login, suscripcion, perfiles e historial. Todavia no hay pruebas de navegador automatizadas.
+- `requirements.txt` se genera desde `uv.lock`: `uv export --frozen --no-dev --no-hashes --no-header --no-emit-project --output-file requirements.txt`.

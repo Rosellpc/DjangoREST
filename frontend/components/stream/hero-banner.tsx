@@ -3,10 +3,11 @@
 import { Play, Info, Volume2, VolumeX, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
-import { useVideo } from "@/lib/video-context"
+import { useVideo, type Video } from "@/lib/video-context"
 import { useState, useEffect, useRef } from "react"
 
 interface HeroBannerProps {
+  video?: Video
   title: string
   description: string
   backgroundImage: string
@@ -14,7 +15,7 @@ interface HeroBannerProps {
   logo?: string
 }
 
-export function HeroBanner({ title, description, backgroundImage, previewVideoSrc }: HeroBannerProps) {
+export function HeroBanner({ title, description, backgroundImage, previewVideoSrc, video }: HeroBannerProps) {
   const { openVideoModal, openPlayer } = useVideo()
   const [isMuted, setIsMuted] = useState(true)
   const [showPreview, setShowPreview] = useState(false)
@@ -34,7 +35,7 @@ export function HeroBanner({ title, description, backgroundImage, previewVideoSr
     }
   }, [])
 
-  const featuredVideo = {
+  const featuredVideo = video ?? {
     id: "featured",
     title,
     thumbnail: backgroundImage,

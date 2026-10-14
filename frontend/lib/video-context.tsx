@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 
 import {
   ApiAuthError,
@@ -58,6 +58,9 @@ export interface WatchProgress {
 const PROFILE_ID_STORAGE_KEY = "streamflix_profile_id"
 
 interface VideoContextType {
+  libraryLoading: boolean
+  libraryError: string | null
+  reloadLibrary: () => void
   myList: Video[]
   addToMyList: (video: Video) => void
   removeFromMyList: (videoId: string) => void
@@ -111,6 +114,9 @@ function toVideoFromFilmId(filmId: number, cached?: Video): Video {
 }
 
 export function VideoProvider({ children }: { children: ReactNode }) {
+  const [libraryLoading, setLibraryLoading] = useState(true)
+  const [libraryError, setLibraryError] = useState<string | null>(null)
+  const loadVersion = useRef(0)
   const [myList, setMyList] = useState<Video[]>([])
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
@@ -128,8 +134,12 @@ export function VideoProvider({ children }: { children: ReactNode }) {
 
   const loadRemoteState = useCallback(
     async (profileId: number) => {
+      const version = ++loadVersion.current
+      setLibraryLoading(true)
+      setLibraryError(null)
       try {
         const [remoteList, remoteHistory] = await Promise.all([listMyListItems(), listWatchHistory()])
+        if (version !== loadVersion.current) return
         setApiEnabled(true)
 
         const nextListIds = new Map<string, number>()
@@ -173,13 +183,21 @@ export function VideoProvider({ children }: { children: ReactNode }) {
         setHistoryItemIds(nextHistoryIds)
         setContinueWatching(nextContinueWatching)
       } catch (error) {
+        if (version !== loadVersion.current) return
+        setLibraryError("No pudimos sincronizar tu lista. Reintenta o vuelve a desbloquear tu perfil.")
         if (error instanceof ApiAuthError) {
           setApiEnabled(false)
         }
+      } finally {
+        if (version === loadVersion.current) setLibraryLoading(false)
       }
     },
     [catalogById]
   )
+
+  const reloadLibrary = useCallback(() => {
+    if (activeProfileId) void loadRemoteState(activeProfileId)
+  }, [activeProfileId, loadRemoteState])
 
   useEffect(() => {
     if (activeProfileId) {
@@ -217,14 +235,19 @@ export function VideoProvider({ children }: { children: ReactNode }) {
 
   const addToMyList = useCallback(
     (video: Video) => {
+      if (!apiEnabled || !activeProfileId) {
+        setLibraryError("No pudimos guardar la película. Vuelve a sincronizar tu lista.")
+        return
+      }
+      const filmId = Number(video.id)
+      if (!Number.isInteger(filmId) || filmId <= 0) {
+        setLibraryError("Esta película no está disponible para guardar en el catálogo.")
+        return
+      }
       setMyList((prev) => {
         if (prev.some((item) => item.id === video.id)) return prev
         return [...prev, video]
       })
-
-      if (!apiEnabled || !activeProfileId) return
-      const filmId = Number(video.id)
-      if (Number.isNaN(filmId)) return
 
       void (async () => {
         try {
@@ -235,7 +258,8 @@ export function VideoProvider({ children }: { children: ReactNode }) {
             return next
           })
         } catch {
-          // Keep optimistic UI state.
+          setMyList((prev) => prev.filter((item) => item.id !== video.id))
+          setLibraryError("No pudimos guardar la película. Inténtalo de nuevo.")
         }
       })()
     },
@@ -244,11 +268,14 @@ export function VideoProvider({ children }: { children: ReactNode }) {
 
   const removeFromMyList = useCallback(
     (videoId: string) => {
-      setMyList((prev) => prev.filter((video) => video.id !== videoId))
-
-      if (!apiEnabled) return
+      if (!apiEnabled) {
+        setLibraryError("No pudimos quitar la película. Vuelve a sincronizar tu lista.")
+        return
+      }
       const itemId = myListItemIds.get(videoId)
       if (!itemId) return
+      const removed = myList.find((video) => video.id === videoId)
+      setMyList((prev) => prev.filter((video) => video.id !== videoId))
 
       void (async () => {
         try {
@@ -259,11 +286,12 @@ export function VideoProvider({ children }: { children: ReactNode }) {
             return next
           })
         } catch {
-          // Keep optimistic UI state.
+          if (removed) setMyList((prev) => prev.some((item) => item.id === videoId) ? prev : [...prev, removed])
+          setLibraryError("No pudimos quitar la película. Inténtalo de nuevo.")
         }
       })()
     },
-    [apiEnabled, myListItemIds]
+    [apiEnabled, myList, myListItemIds]
   )
 
   const isInMyList = useCallback((videoId: string) => myList.some((video) => video.id === videoId), [myList])
@@ -382,6 +410,9 @@ export function VideoProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<VideoContextType>(
     () => ({
+      libraryLoading,
+      libraryError,
+      reloadLibrary,
       myList,
       addToMyList,
       removeFromMyList,
@@ -408,6 +439,9 @@ export function VideoProvider({ children }: { children: ReactNode }) {
       registerCatalogVideos,
     }),
     [
+      libraryLoading,
+      libraryError,
+      reloadLibrary,
       myList,
       addToMyList,
       removeFromMyList,

@@ -9,33 +9,42 @@ interface ProfileSelectorProps {
 }
 
 export function ProfileSelector({ onManageProfiles }: ProfileSelectorProps) {
-  const { profiles, selectProfile, canAddMoreProfiles, setEditingProfile, setShowManageProfiles } = useProfile()
+  const { profiles, selectProfile, verifyPin, canAddMoreProfiles, setEditingProfile, setShowManageProfiles } = useProfile()
   const [isManaging, setIsManaging] = useState(false)
   const [pinModal, setPinModal] = useState<{ profile: Profile } | null>(null)
   const [pinInput, setPinInput] = useState("")
   const [pinError, setPinError] = useState(false)
+  const [pinPending, setPinPending] = useState(false)
 
   const handleProfileClick = (profile: Profile) => {
-    if (isManaging) {
-      setEditingProfile(profile)
-      setShowManageProfiles(true)
-    } else if (profile.hasPin) {
+    if (profile.hasPin) {
       setPinModal({ profile })
       setPinInput("")
       setPinError(false)
+    } else if (isManaging) {
+      setEditingProfile(profile)
+      setShowManageProfiles(true)
     } else {
       selectProfile(profile.id)
     }
   }
 
-  const handlePinSubmit = () => {
-    if (pinModal && pinInput === pinModal.profile.pin) {
-      selectProfile(pinModal.profile.id)
+  const handlePinSubmit = async () => {
+    if (!pinModal || pinPending) return
+    setPinPending(true)
+    if (await verifyPin(pinModal.profile.id, pinInput)) {
+      if (isManaging) {
+        setEditingProfile(pinModal.profile)
+        setShowManageProfiles(true)
+      } else {
+        selectProfile(pinModal.profile.id)
+      }
       setPinModal(null)
     } else {
       setPinError(true)
       setPinInput("")
     }
+    setPinPending(false)
   }
 
   const handleAddProfile = () => {
@@ -202,7 +211,7 @@ export function ProfileSelector({ onManageProfiles }: ProfileSelectorProps) {
                 </button>
                 <button
                   onClick={handlePinSubmit}
-                  disabled={pinInput.length !== 4}
+                  disabled={pinInput.length !== 4 || pinPending}
                   className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Continue

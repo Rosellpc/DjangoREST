@@ -30,13 +30,16 @@ export interface StreamVideo {
 }
 
 export async function fetchCatalog(): Promise<CatalogMovie[]> {
-  const response = await fetch("/api/catalog", { cache: "no-store" })
-  if (!response.ok) {
-    throw new Error(`Catalog request failed with status ${response.status}`)
+  const movies: CatalogMovie[] = []
+  let page = 1
+  while (true) {
+    const response = await fetch(`/api/catalog?page=${page}`, { cache: "no-store" })
+    if (!response.ok) throw new Error(`Catalog request failed with status ${response.status}`)
+    const payload = (await response.json()) as CatalogPage
+    movies.push(...payload.results)
+    if (!payload.next) return movies
+    page += 1
   }
-
-  const payload = (await response.json()) as CatalogPage
-  return payload.results ?? []
 }
 
 export function toStreamVideo(movie: CatalogMovie): StreamVideo {

@@ -1,4 +1,4 @@
-# StreamFlix Django REST
+# StreamFlix from Django REST
 
 Monorepo de una app tipo streaming con backend en Django REST Framework y frontend en Next.js.
 

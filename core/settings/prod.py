@@ -1,4 +1,4 @@
-from .base import *  # noqa: F401,F403
+from .base import *
 
 # Production hardening
 DEBUG = False
@@ -36,3 +36,18 @@ X_FRAME_OPTIONS = "DENY"
 # Static files
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Conexión cifrada con Neon.
+DATABASES["default"]["OPTIONS"] = {"sslmode": "require"}
+
+# Archivos estáticos de Django, incluido el administrador.
+MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}

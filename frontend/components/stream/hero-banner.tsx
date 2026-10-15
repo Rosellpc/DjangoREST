@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
-import { Check, Info, Play, Plus, Volume2, VolumeX } from "lucide-react"
+import { Check, Info, Pause, Play, Plus, Volume2, VolumeX } from "lucide-react"
 import { useVideo, type Video } from "@/lib/video-context"
 
 interface HeroBannerProps {
@@ -14,15 +14,41 @@ interface HeroBannerProps {
 }
 
 export function HeroBanner({ video, title, description, backgroundImage, previewVideoSrc }: HeroBannerProps) {
-  const { openPlayer, openVideoModal, addToMyList, removeFromMyList, isInMyList } = useVideo()
-  const [preview, setPreview] = useState(false)
+  const { openPlayer, openVideoModal, addToMyList, removeFromMyList, isInMyList, isPlayerOpen, selectedVideo } = useVideo()
+  const [preview, setPreview] = useState(true)
   const [muted, setMuted] = useState(true)
+  const previewRef = useRef<HTMLVideoElement>(null)
+  const suspended = isPlayerOpen || Boolean(selectedVideo)
+
+  useEffect(() => {
+    const element = previewRef.current
+    if (!element || !previewVideoSrc) return
+    let disposed = false
+    const syncPlayback = () => {
+      if (!preview || suspended || document.hidden) {
+        element.pause()
+        return
+      }
+      void element.play().catch(() => {
+        // Keep the poster visible and let the user retry if autoplay is blocked.
+        if (!disposed) setPreview(false)
+      })
+    }
+    syncPlayback()
+    document.addEventListener("visibilitychange", syncPlayback)
+    return () => {
+      disposed = true
+      document.removeEventListener("visibilitychange", syncPlayback)
+      element.pause()
+    }
+  }, [preview, previewVideoSrc, suspended])
+
   const saved = video ? isInMyList(video.id) : false
   return <section className="home-hero library-container" aria-label="Película en portada">
     <div className="featured-card">
       <div className="featured-art">
         <Image src={backgroundImage} alt="" fill priority sizes="(max-width: 1440px) 95vw, 1400px" className="object-cover" />
-        {preview && previewVideoSrc && <video src={previewVideoSrc} autoPlay muted={muted} playsInline className="absolute inset-0 size-full object-cover" onEnded={() => setPreview(false)} onError={() => setPreview(false)} />}
+        {previewVideoSrc && <video ref={previewRef} src={previewVideoSrc} poster={backgroundImage} loop muted={muted} playsInline preload="metadata" aria-hidden="true" className={`absolute inset-0 size-full object-cover ${preview ? "" : "invisible"}`} onError={() => setPreview(false)} />}
         <div className="featured-shade" />
       </div>
       {preview && <button onClick={() => setMuted(!muted)} aria-label={muted ? "Activar sonido del avance" : "Silenciar avance"} className="featured-sound">{muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}</button>}
@@ -37,7 +63,7 @@ export function HeroBanner({ video, title, description, backgroundImage, preview
         </div>
         <div className="mt-4 flex flex-wrap gap-x-6 gap-y-3 text-xs text-muted-foreground">
           <button disabled={!video} aria-pressed={saved} onClick={() => video && (saved ? removeFromMyList(video.id) : addToMyList(video))} className="inline-flex min-h-10 items-center gap-2 hover:text-foreground">{saved ? <Check className="size-4" /> : <Plus className="size-4" />}{saved ? "En My List" : "Añadir a My List"}</button>
-          {previewVideoSrc && video && <button onClick={() => setPreview(!preview)} className="inline-flex min-h-10 items-center gap-2 hover:text-foreground"><Play className="size-3.5" />{preview ? "Cerrar avance" : "Ver avance"}</button>}
+          {previewVideoSrc && <button onClick={() => setPreview(!preview)} aria-pressed={preview} className="inline-flex min-h-10 items-center gap-2 hover:text-foreground">{preview ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}{preview ? "Pausar avance" : "Ver avance"}</button>}
         </div>
       </div>
     </div>

@@ -275,7 +275,7 @@ Frontend: 14 pruebas aprobadas; TypeScript correcto.
 ### Interfaz
 
 - `/` mantiene la pagina principal con una portada separada y filas horizontales de peliculas. El logo STREAMFLIX lleva siempre a esta ruta.
-- La portada es panoramica, con titulo y acciones sobre un degradado de contraste en la esquina inferior izquierda. Los avances se reproducen al solicitarlos. La navegacion movil es compacta y reserva espacio para el area segura del dispositivo.
+- La portada es panorámica, con título y acciones sobre un degradado de contraste en la esquina inferior izquierda. El video del hero se reproduce automáticamente, sin sonido y en bucle, cubriendo el contenedor sin deformarse. Se puede pausar o activar el sonido; si el navegador bloquea la reproducción, se muestra el póster. El avance se pausa al abrir una ficha, el reproductor o al ocultar la pestaña. La navegación móvil es compacta y reserva espacio para el área segura del dispositivo.
 - El codigo fuente se guarda en UTF-8 (`.editorconfig`), el documento HTML declara espanol y la API usa UTF-8. Los textos de interfaz mantienen tildes, signos y caracteres especiales.
 - Home y Movies comparten una ficha de pelicula: pantalla completa en movil y columnas en escritorio, con sinopsis, reproduccion, My List y sugerencias del catalogo real.
 - La navegacion muestra Movies (`/movies`) y My List (`/my-list`), tambien en movil. Home, TV Shows y New & Popular no aparecen en el menu.

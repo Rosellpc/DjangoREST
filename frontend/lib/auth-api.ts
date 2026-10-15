@@ -49,7 +49,14 @@ export async function register(username: string, password: string, email?: strin
   return authRequest("auth/register/", { username, password, email })
 }
 
-export async function refreshAccessToken(): Promise<string | null> {
+let pendingRefresh: Promise<string | null> | null = null
+
+export function refreshAccessToken(): Promise<string | null> {
+  if (!pendingRefresh) pendingRefresh = performTokenRefresh().finally(() => { pendingRefresh = null })
+  return pendingRefresh
+}
+
+async function performTokenRefresh(): Promise<string | null> {
   const refresh = getRefreshToken()
   if (!refresh) return null
 

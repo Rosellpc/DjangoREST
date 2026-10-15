@@ -24,7 +24,12 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       setLoading(true)
       setError(null)
       try {
-        const movies = (await fetchCatalog()).map(toStreamVideo)
+        const movies = (await fetchCatalog((partial) => {
+          if (cancelled) return
+          const videos = partial.map(toStreamVideo)
+          setCatalog(videos)
+          registerCatalogVideos(videos)
+        })).map(toStreamVideo)
         if (cancelled) return
         setCatalog(movies)
         registerCatalogVideos(movies)

@@ -3,10 +3,12 @@ from rest_framework.permissions import AllowAny
 
 from .filters import FilmFilter
 from .models import Film
+from .pagination import CatalogPagination
 from .serializers import FilmSerializer
 
 
 class MovieCatalogViewSet(viewsets.ReadOnlyModelViewSet):
+    pagination_class = CatalogPagination
     queryset = Film.objects.all()
     serializer_class = FilmSerializer
     permission_classes = [AllowAny]

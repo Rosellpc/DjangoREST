@@ -4,6 +4,18 @@ from .filters import FilmFilter
 from .views import MovieCatalogViewSet
 
 
+def test_catalog_page_size_can_be_increased_and_is_bounded():
+    from rest_framework.request import Request
+    from rest_framework.test import APIRequestFactory
+    from .pagination import CatalogPagination
+    for requested, expected in [(200, 200), (10000, 200), (40, 40)]:
+        request = Request(APIRequestFactory().get("/api/movies/", {"page_size": requested}))
+        paginator = CatalogPagination()
+        page = paginator.paginate_queryset(list(range(1000)), request)
+        assert len(page) == expected
+        assert paginator.page.paginator.count == 1000
+
+
 def test_movies_list_url_is_registered():
     assert reverse("movies-list") == "/api/movies/"
 

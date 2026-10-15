@@ -26,22 +26,45 @@ test('catalog follows every page through the same-origin proxy', async () => {
   const calls = []
   const api = load('lib/catalog-api.ts', { fetch: async (url) => {
     calls.push(url)
+    const page = Number(new URL(url, 'http://local').searchParams.get('page'))
     return { ok: true, json: async () => ({
-      results: [{ film_id: calls.length }], next: calls.length < 3 ? 'http://backend/movies/?page=2' : null,
+      count: 3, results: [{ film_id: page }], next: page < 3 ? 'http://backend/movies/?page=2' : null,
     }) }
   } }, media)
   const result = await api.fetchCatalog()
-  assert.deepEqual(calls, ['/api/catalog?page=1', '/api/catalog?page=2', '/api/catalog?page=3'])
+  assert.deepEqual(calls, ['/api/catalog?page=1&page_size=200', '/api/catalog?page=2&page_size=200', '/api/catalog?page=3&page_size=200'])
   assert.equal(result.length, 3)
 })
 
 test('catalog reports a failed later page instead of returning incomplete results', async () => {
   let page = 0
   const api = load('lib/catalog-api.ts', { fetch: async () => ++page === 1
-    ? { ok: true, json: async () => ({ results: [], next: 'next' }) }
+    ? { ok: true, json: async () => ({ count: 2, results: [{ film_id: 1 }], next: 'next' }) }
     : { ok: false, status: 502 },
   }, media)
   await assert.rejects(api.fetchCatalog(), /502/)
+})
+
+test('catalog publishes the first block early and reuses complete results', async () => {
+  let release
+  const gate = new Promise((resolve) => { release = resolve })
+  let calls = 0
+  const received = []
+  const api = load('lib/catalog-api.ts', { fetch: async () => {
+    calls += 1
+    const page = calls
+    if (page > 1) await gate
+    return { ok: true, json: async () => ({ count: 2, results: [{ film_id: page }], next: page === 1 ? 'next' : null }) }
+  } }, media)
+  const pending = api.fetchCatalog((movies) => received.push(movies.length))
+  await new Promise((resolve) => setImmediate(resolve))
+  assert.deepEqual(received, [1])
+  const shared = api.fetchCatalog()
+  release()
+  assert.equal((await pending).length, 2)
+  assert.equal((await shared).length, 2)
+  assert.equal((await api.fetchCatalog()).length, 2)
+  assert.equal(calls, 2)
 })
 
 test('PIN verification stores a server grant and sends it on subsequent profile requests', async () => {
@@ -139,6 +162,7 @@ test('navigation preserves the home logo link and exposes Movies and My List onl
     'next/link': { default: ({ children, ...props }) => React.createElement('a', props, children) },
   })
   const { Navbar } = load('components/stream/navbar.tsx', {}, {
+    './account-dialog': { AccountDialog: () => null },
     '@/components/ui/liquid-glass': load('components/ui/liquid-glass.tsx', {}, { 'react/jsx-runtime': require('react/jsx-runtime') }),
     '@/components/brand-logo': brand,
     react: React,
@@ -147,7 +171,7 @@ test('navigation preserves the home logo link and exposes Movies and My List onl
     'next/image': { default: () => null },
     'next/navigation': { usePathname: () => '/movies' },
     'lucide-react': require('lucide-react'),
-    '@/lib/auth-context': { useAuth: () => ({ signOut() {} }) },
+    '@/lib/auth-context': { useAuth: () => ({ signOut() {}, account: { user: { username: 'rosell', first_name: 'Rosell', last_name: 'Perez' }, subscription: { plan: { name: 'Premium' } } } }) },
     '@/lib/video-context': { useVideo: () => ({ myList: [] }) },
     '@/lib/profile-context': {
       useProfile: () => ({ currentProfile: { id: '1', name: 'User' }, profiles: [{ id: '1' }] }),
@@ -159,6 +183,24 @@ test('navigation preserves the home logo link and exposes Movies and My List onl
   assert.match(html, /href="\/movies" aria-current="page"/)
   assert.match(html, /href="\/my-list"/)
   assert.doesNotMatch(html, /TV Shows|New &amp; Popular|>Home</)
+  assert.match(html, /Rosell Perez/)
+  assert.match(html, /Plan Premium/)
+})
+
+test('account details are fetched privately and retry after an expired access token', async () => {
+  const calls = []
+  const account = { user: { username: 'rosell' }, subscription: { plan: { name: 'Premium' } } }
+  const api = load('lib/subscriptions-api.ts', {
+    window: { localStorage: { getItem: () => null } },
+    fetch: async (url, init) => {
+      calls.push({ url, token: init.headers.get('authorization'), cache: init.cache })
+      return calls.length === 1 ? { status: 401 } : { status: 200, ok: true, json: async () => account }
+    },
+  }, { '@/lib/auth-api': { refreshAccessToken: async () => 'renewed' }, '@/lib/auth-tokens': { getAccessToken: () => 'expired' } })
+  assert.equal(await api.getCurrentAccount(), account)
+  assert.equal(calls[0].url, '/api/backend/auth/me/')
+  assert.equal(calls[0].cache, 'no-store')
+  assert.equal(calls[1].token, 'Bearer renewed')
 })
 
 test('profile photos are resized before saving and bitmap resources are released', async () => {

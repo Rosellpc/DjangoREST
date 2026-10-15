@@ -9,13 +9,18 @@ export async function GET(request: Request) {
   const target = new URL(`${backendBase.replace(/\/$/, "")}/movies/`)
   target.search = new URL(request.url).search
   const upstream = await fetch(target, {
-    cache: "no-store",
+    next: { revalidate: 300 },
     headers: { Accept: "application/json" },
   })
 
   const body = await upstream.text()
   return new NextResponse(body, {
     status: upstream.status,
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      "cache-control": upstream.status === 200
+        ? "public, s-maxage=300, stale-while-revalidate=3600"
+        : "no-store",
+    },
   })
 }

@@ -54,7 +54,9 @@ export function MoviesPage() {
     <section id="movie-catalog" className="library-container scroll-mt-28">
       <div className="mb-7"><p className="cinema-eyebrow text-muted-foreground">La siguiente historia te espera</p><h2 className="mt-2 text-2xl font-semibold sm:text-3xl">Todas las películas</h2></div>
       {libraryError && <p role="alert" className="mb-5 rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">{libraryError}</p>}
-      {error ? <div role="alert" className="rounded-xl border border-primary/30 p-6"><p>{error}</p><button onClick={reload} className="cinema-button-secondary mt-4">Reintentar</button></div> : loading ? <MovieGridSkeleton /> : <MovieBrowser videos={catalog} />}
+      {error && <div role="alert" className="mb-5 rounded-xl border border-primary/30 p-6"><p>{error}</p><button onClick={reload} className="cinema-button-secondary mt-4">Reintentar</button></div>}
+      {loading && catalog.length === 0 ? <MovieGridSkeleton /> : <MovieBrowser videos={catalog} />}
+      {loading && catalog.length > 0 && <p role="status" className="mt-5 text-xs text-muted-foreground">Cargando el resto del catálogo…</p>}
     </section>
   </>
 }

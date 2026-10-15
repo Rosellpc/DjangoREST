@@ -29,16 +29,42 @@ export interface StreamVideo {
   description: string
 }
 
-export async function fetchCatalog(): Promise<CatalogMovie[]> {
-  const movies: CatalogMovie[] = []
-  let page = 1
-  while (true) {
-    const response = await fetch(`/api/catalog?page=${page}`, { cache: "no-store" })
+let cachedCatalog: { movies: CatalogMovie[]; expires: number } | null = null
+let pendingCatalog: Promise<CatalogMovie[]> | null = null
+const subscribers = new Set<(movies: CatalogMovie[]) => void>()
+
+async function loadCatalog(): Promise<CatalogMovie[]> {
+  async function page(number: number): Promise<CatalogPage> {
+    const response = await fetch(`/api/catalog?page=${number}&page_size=200`)
     if (!response.ok) throw new Error(`Catalog request failed with status ${response.status}`)
-    const payload = (await response.json()) as CatalogPage
-    movies.push(...payload.results)
-    if (!payload.next) return movies
-    page += 1
+    return response.json()
+  }
+  const first = await page(1)
+  const movies = [...first.results]
+  const publish = () => subscribers.forEach((subscriber) => subscriber([...movies]))
+  publish()
+  // Use the actual page size so rolling deployments also work with the old API.
+  const pages = first.next && first.results.length ? Math.ceil(first.count / first.results.length) : 1
+  for (let next = 2; next <= pages; next += 2) {
+    const batch = await Promise.all(Array.from({ length: Math.min(2, pages - next + 1) }, (_, index) => page(next + index)))
+    batch.forEach((payload) => movies.push(...payload.results))
+    publish()
+  }
+  cachedCatalog = { movies, expires: Date.now() + 300_000 }
+  return movies
+}
+
+export async function fetchCatalog(onProgress?: (movies: CatalogMovie[]) => void): Promise<CatalogMovie[]> {
+  if (cachedCatalog && cachedCatalog.expires > Date.now()) {
+    onProgress?.(cachedCatalog.movies)
+    return cachedCatalog.movies
+  }
+  if (onProgress) subscribers.add(onProgress)
+  try {
+    if (!pendingCatalog) pendingCatalog = loadCatalog().finally(() => { pendingCatalog = null })
+    return await pendingCatalog
+  } finally {
+    if (onProgress) subscribers.delete(onProgress)
   }
 }
 

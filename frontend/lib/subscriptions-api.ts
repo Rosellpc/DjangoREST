@@ -41,6 +41,15 @@ export interface ApiSubscription {
   updated_at: string
 }
 
+export interface ApiAccount {
+  user: { id: number; username: string; first_name: string; last_name: string; email: string; date_joined: string }
+  subscription: ApiSubscription | null
+}
+
+export async function getCurrentAccount(): Promise<ApiAccount> {
+  return apiFetch<ApiAccount>("auth/me/")
+}
+
 export interface ApiProfile {
   id: number
   subscription: number

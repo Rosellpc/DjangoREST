@@ -48,7 +48,12 @@ function StreamingApp() {
     const loadCatalog = async () => {
       try {
         setCatalogLoading(true)
-        const movies = await fetchCatalog()
+        const movies = await fetchCatalog((partial) => {
+          if (!mounted) return
+          const videos = partial.map(toStreamVideo)
+          setCatalog(videos)
+          registerCatalogVideos(videos)
+        })
         if (!mounted) return
         const streamVideos = movies.map(toStreamVideo)
         setCatalog(streamVideos)
@@ -56,7 +61,6 @@ function StreamingApp() {
         setCatalogError(null)
       } catch {
         if (!mounted) return
-        setCatalog([])
         setCatalogError("We could not load the catalog from the backend API.")
       } finally {
         if (mounted) {
@@ -221,12 +225,12 @@ function StreamingApp() {
 }
 
 function AuthenticatedApp() {
-  const { isAuthenticated, isLoading, sessionVersion } = useAuth()
+  const { isAuthenticated, isLoading, sessionVersion, reloadAccount } = useAuth()
   const [subscriptionReadyForSession, setSubscriptionReadyForSession] = useState<number | null>(null)
   const subscriptionReady = subscriptionReadyForSession === sessionVersion
   const handleSubscriptionReady = useCallback(
-    () => setSubscriptionReadyForSession(sessionVersion),
-    [sessionVersion]
+    () => { setSubscriptionReadyForSession(sessionVersion); reloadAccount() },
+    [sessionVersion, reloadAccount]
   )
 
   if (isLoading) {

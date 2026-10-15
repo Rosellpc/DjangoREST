@@ -117,6 +117,7 @@ export function VideoProvider({ children }: { children: ReactNode }) {
   const [libraryLoading, setLibraryLoading] = useState(true)
   const [libraryError, setLibraryError] = useState<string | null>(null)
   const loadVersion = useRef(0)
+  const catalogRef = useRef(new Map<string, Video>())
   const [myList, setMyList] = useState<Video[]>([])
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
@@ -148,7 +149,7 @@ export function VideoProvider({ children }: { children: ReactNode }) {
           .map((item) => {
             const videoId = String(item.film_id)
             nextListIds.set(videoId, item.id)
-            return toVideoFromFilmId(item.film_id, catalogById.get(videoId))
+            return toVideoFromFilmId(item.film_id, catalogRef.current.get(videoId))
           })
 
         const nextHistoryIds = new Map<string, number>()
@@ -173,7 +174,7 @@ export function VideoProvider({ children }: { children: ReactNode }) {
             })
 
             if (!item.completed && progressPercent >= 5) {
-              nextContinueWatching.push(toVideoFromFilmId(item.film_id, catalogById.get(videoId)))
+              nextContinueWatching.push(toVideoFromFilmId(item.film_id, catalogRef.current.get(videoId)))
             }
           })
 
@@ -192,7 +193,7 @@ export function VideoProvider({ children }: { children: ReactNode }) {
         if (version === loadVersion.current) setLibraryLoading(false)
       }
     },
-    [catalogById]
+    []
   )
 
   const reloadLibrary = useCallback(() => {
@@ -221,6 +222,7 @@ export function VideoProvider({ children }: { children: ReactNode }) {
   }, [activeProfileId, loadRemoteState])
 
   const registerCatalogVideos = useCallback((videos: Video[]) => {
+    videos.forEach((video) => catalogRef.current.set(video.id, video))
     setCatalogById((prev) => {
       const next = new Map(prev)
       videos.forEach((video) => next.set(video.id, video))

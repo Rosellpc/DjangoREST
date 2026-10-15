@@ -43,9 +43,9 @@ function StreamingLibrary({ children }: { children: ReactNode }) {
 }
 
 function AuthenticatedLibrary({ children }: { children: ReactNode }) {
-  const { isAuthenticated, isLoading, sessionVersion } = useAuth()
+  const { isAuthenticated, isLoading, sessionVersion, reloadAccount } = useAuth()
   const [readySession, setReadySession] = useState<number | null>(null)
-  const onReady = useCallback(() => setReadySession(sessionVersion), [sessionVersion])
+  const onReady = useCallback(() => { setReadySession(sessionVersion); reloadAccount() }, [sessionVersion, reloadAccount])
   if (isLoading) return <div className="flex min-h-screen items-center justify-center" role="status">Preparando tu sesión…</div>
   if (!isAuthenticated) return <AuthScreen />
   if (readySession !== sessionVersion) return <SubscriptionScreen onReady={onReady} />

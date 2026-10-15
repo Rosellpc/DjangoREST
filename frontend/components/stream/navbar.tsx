@@ -10,12 +10,16 @@ import { useVideo } from "@/lib/video-context"
 import { useProfile, AVATAR_COLORS } from "@/lib/profile-context"
 import { BrandLogo } from "@/components/brand-logo"
 import { LiquidGlass } from "@/components/ui/liquid-glass"
+import { AccountDialog } from "./account-dialog"
 
 export function Navbar({ onSearchClick }: { onSearchClick: () => void }) {
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
-  const { signOut } = useAuth()
+  const { signOut, account, accountLoading, accountError } = useAuth()
+  const accountName = account ? [account.user.first_name, account.user.last_name].filter(Boolean).join(" ") || account.user.username : "Mi cuenta"
+  const planName = account?.subscription?.plan.name
   const { myList } = useVideo()
   const { currentProfile, profiles, switchProfile, setEditingProfile, setShowManageProfiles } = useProfile()
   const color = AVATAR_COLORS[Math.max(0, profiles.findIndex((profile) => profile.id === currentProfile?.id)) % AVATAR_COLORS.length]
@@ -46,12 +50,13 @@ export function Navbar({ onSearchClick }: { onSearchClick: () => void }) {
           <div ref={menuRef} className="relative">
             <button onClick={() => setMenuOpen(!menuOpen)} aria-label="Opciones de perfil" aria-expanded={menuOpen} aria-controls="profile-menu" className="flex items-center gap-2.5">
               <span className={`relative flex size-9 items-center justify-center overflow-hidden rounded-full ${color.bg} text-sm font-semibold`}>
-                {currentProfile?.avatarUrl ? <Image src={currentProfile.avatarUrl} alt="" fill sizes="36px" className="object-cover" /> : currentProfile?.name.charAt(0).toUpperCase()}
+                {currentProfile?.avatarUrl ? <Image src={currentProfile.avatarUrl} alt="" fill sizes="36px" unoptimized className="object-cover" /> : currentProfile?.name.charAt(0).toUpperCase()}
               </span>
-              <span className="hidden text-sm sm:inline">{currentProfile?.name}</span><ChevronDown className={`size-3.5 text-muted-foreground transition-transform ${menuOpen ? "rotate-180" : ""}`} />
+              <span className="hidden max-w-36 text-left sm:block"><span className="block truncate text-sm">{accountName}</span><span className="block truncate text-[10px] text-white/60">{accountLoading ? "Cargando cuenta…" : accountError ? "Cuenta no disponible" : planName ? `Plan ${planName}` : "Ver mi cuenta"}</span></span><ChevronDown className={`size-3.5 text-muted-foreground transition-transform ${menuOpen ? "rotate-180" : ""}`} />
             </button>
             {menuOpen && <LiquidGlass id="profile-menu" className="glass-dropdown absolute right-0 top-full mt-5 w-60 p-2">
-              <p className="px-3 py-2 text-xs text-muted-foreground">Tu espacio de cine</p>
+              <div className="border-b border-white/10 px-3 py-3"><p className="truncate text-sm font-semibold">{accountName}</p><p className="mt-1 text-xs text-white/60">{planName ? `Plan ${planName} · ` : ""}Perfil: {currentProfile?.name}</p></div>
+              <button className="profile-menu-item mt-1" onClick={() => { setMenuOpen(false); setAccountOpen(true) }}><UserRound className="size-4" />Mi cuenta y suscripción</button>
               <button className="profile-menu-item" onClick={() => { setMenuOpen(false); switchProfile() }}><Users className="size-4" />Cambiar perfil</button>
               <button className="profile-menu-item" onClick={() => { setMenuOpen(false); setEditingProfile(currentProfile); setShowManageProfiles(true) }}><Pencil className="size-4" />Editar perfil</button>
               <div className="my-2 border-t border-white/10" />
@@ -67,9 +72,10 @@ export function Navbar({ onSearchClick }: { onSearchClick: () => void }) {
       <div className="grid grid-cols-4 gap-1">
         {links.map(({ href, label, icon: Icon }) => <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined} className={`mobile-nav-item glass-mobile-link ${pathname === href ? "glass-nav-link-active" : ""}`}><Icon className="size-5" />{label}</Link>)}
         <button onClick={onSearchClick} className="mobile-nav-item glass-mobile-link"><Search className="size-5" />Buscar</button>
-        <button onClick={switchProfile} className="mobile-nav-item glass-mobile-link"><UserRound className="size-5" />Perfil</button>
+        <button onClick={() => setAccountOpen(true)} className="mobile-nav-item glass-mobile-link"><UserRound className="size-5" />Cuenta</button>
       </div>
       </LiquidGlass>
     </nav>
+    <AccountDialog open={accountOpen} onClose={() => setAccountOpen(false)} />
   </>
 }

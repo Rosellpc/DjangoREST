@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import {
   ApiAuthError,
   createProfile,
+  ensureInitialProfile,
   deleteProfile as deleteProfileRequest,
   listProfiles,
   listUserSubscriptions,
@@ -152,7 +153,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
         const fetchedProfiles = await listProfiles()
         const ensuredProfiles =
-          fetchedProfiles.length > 0 ? fetchedProfiles : [await createProfile({ name: "User" })]
+          fetchedProfiles.length > 0 ? fetchedProfiles : [await ensureInitialProfile()]
 
         const mappedProfiles = ensuredProfiles.map(mapApiProfile)
         if (!mounted) return

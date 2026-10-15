@@ -203,6 +203,25 @@ test('account details are fetched privately and retry after an expired access to
   assert.equal(calls[1].token, 'Bearer renewed')
 })
 
+test('account proxy normalizes slashless routes and preserves authentication', async () => {
+  let target
+  let options
+  const route = load('app/api/backend/[...path]/route.ts', {
+    process: { env: { API_BASE_URL: 'https://backend.example/api/' } },
+    fetch: async (url, init) => {
+      target = url
+      options = init
+      return { status: 401, headers: new Headers({ 'content-type': 'application/json' }), text: async () => '{}' }
+    },
+  }, { 'next/server': { NextResponse: class { constructor(body, init) { this.status = init.status; this.headers = new Headers(init.headers) } } } })
+  const response = await route.GET({ url: 'https://frontend/api/backend/auth/me', method: 'GET', headers: new Headers({ authorization: 'Bearer token' }) }, { params: Promise.resolve({ path: ['auth', 'me'] }) })
+  assert.equal(target, 'https://backend.example/api/auth/me/')
+  assert.equal(options.headers.get('authorization'), 'Bearer token')
+  assert.equal(options.cache, 'no-store')
+  assert.equal(response.status, 401)
+  assert.equal(response.headers.get('cache-control'), 'private, no-store')
+})
+
 test('profile photos are resized before saving and bitmap resources are released', async () => {
   let closed = false
   let drawing

@@ -8,6 +8,10 @@ export class ApiAuthError extends Error {
   }
 }
 
+export class ApiRequestError extends Error {
+  constructor(public status: number, message: string) { super(message) }
+}
+
 export interface ApiPage<T> {
   count: number
   next: string | null
@@ -121,7 +125,7 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   if (!response.ok) {
     const body = await response.text()
-    throw new Error(`Request failed (${response.status}): ${body}`)
+    throw new ApiRequestError(response.status, `Request failed (${response.status}): ${body}`)
   }
 
   if (response.status === 204) return null as T
@@ -156,6 +160,10 @@ export async function createUserSubscription(
 
 export async function listProfiles(): Promise<ApiProfile[]> {
   return fetchAllPages<ApiProfile>("subscriptions/profiles/")
+}
+
+export async function ensureInitialProfile(): Promise<ApiProfile> {
+  return apiFetch<ApiProfile>("subscriptions/profiles/initial/", { method: "POST" })
 }
 
 export async function verifyProfilePin(profileId: number, pin: string): Promise<boolean> {

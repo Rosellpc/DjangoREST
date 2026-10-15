@@ -61,6 +61,7 @@ def test_user_can_create_own_subscription(authenticated_api_client, plan, user):
     assert response.data["payment_last4"] == "4242"
     assert response.data["billing_email"] == "testuser@example.com"
     assert UserSubscription.objects.filter(user=user).count() == 1
+    assert Profile.objects.get(subscription__user=user).name == user.username
 
 
 @pytest.mark.django_db
@@ -95,6 +96,39 @@ def test_profile_create_requires_existing_subscription(authenticated_api_client)
     )
     assert response.status_code == 400
     assert "create a subscription" in str(response.data).lower()
+
+
+@pytest.mark.django_db
+def test_initial_profile_uses_first_name_and_does_not_duplicate(authenticated_api_client, user, plan):
+    user.first_name = "Ana"
+    user.save()
+    response = authenticated_api_client.post(reverse("user-subscriptions-list"), {"plan_id": plan.pk}, format="json")
+    assert response.status_code == 201
+    profile = Profile.objects.get(subscription__user=user)
+    assert profile.name == "Ana"
+    for _ in range(2):
+        response = authenticated_api_client.post(reverse("profiles-initial"), format="json")
+        assert response.status_code == 200
+        assert response.data["id"] == profile.pk
+    assert Profile.objects.filter(subscription__user=user).count() == 1
+
+
+@pytest.mark.django_db
+def test_initial_profile_repairs_missing_profile_without_overwriting_custom_names(authenticated_api_client, active_subscription, user):
+    response = authenticated_api_client.post(reverse("profiles-initial"), format="json")
+    assert response.status_code == 201
+    assert response.data["name"] == user.username
+    profile = Profile.objects.get(pk=response.data["id"])
+    profile.name = "Mi cine"
+    profile.save()
+    response = authenticated_api_client.post(reverse("profiles-initial"), format="json")
+    assert response.status_code == 200
+    assert response.data["name"] == "Mi cine"
+
+
+@pytest.mark.django_db
+def test_initial_profile_requires_subscription(authenticated_api_client):
+    assert authenticated_api_client.post(reverse("profiles-initial"), format="json").status_code == 400
 
 
 @pytest.mark.django_db
@@ -301,8 +335,9 @@ def test_account_subscription_profile_and_history_flow(api_client):
     plan = SubscriptionPlan.objects.get(code="basic")
     assert api_client.post(reverse("user-subscriptions-list"),
         {"plan_id": plan.pk}, format="json").status_code == 201
-    profile = api_client.post(reverse("profiles-list"), {"name": "Main"}, format="json")
-    assert profile.status_code == 201
+    profile = api_client.post(reverse("profiles-initial"), format="json")
+    assert profile.status_code == 200
+    assert profile.data["name"] == "flow-user"
     payload = {"profile": profile.data["id"], "film_id": 1}
     assert api_client.post(reverse("my-list-list"), payload, format="json").status_code == 201
     assert api_client.post(reverse("watch-history-list"),

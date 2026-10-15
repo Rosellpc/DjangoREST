@@ -187,6 +187,7 @@ Suscripciones:
 - Planes: `GET /api/subscriptions/plans/`
 - Suscripcion del usuario: `/api/subscriptions/subscriptions/`
 - Perfiles: `/api/subscriptions/profiles/`
+- Crear o recuperar el perfil inicial: `POST /api/subscriptions/profiles/initial/`
 - Historial: `/api/subscriptions/history/`
 - Mi lista: `/api/subscriptions/my-list/`
 
@@ -266,9 +267,9 @@ uv run python manage.py check
 System check identified no issues
 
 uv run pytest
-41 passed
+44 passed
 
-Frontend: 13 pruebas aprobadas; TypeScript y compilación correctos.
+Frontend: 14 pruebas aprobadas; TypeScript correcto.
 ```
 
 ### Interfaz
@@ -280,6 +281,7 @@ Frontend: 13 pruebas aprobadas; TypeScript y compilación correctos.
 - Las paginas nuevas usan los posters y videos locales existentes. Los pagos siguen siendo simulados.
 - Las fotos de perfil admiten JPG, PNG y WebP de hasta 5 MB. El navegador las reduce a un maximo de 256 pixeles antes de guardarlas; la API limita y valida la imagen codificada.
 - El menu muestra el nombre del titular y el plan. "Mi cuenta y suscripcion" muestra correo, fecha de registro, perfil seleccionado, estado del plan y fechas de inicio/finalizacion registradas. Las suscripciones simuladas no muestran una proxima fecha de cobro inventada.
+- Al elegir un plan se crea el perfil inicial con el nombre del titular o su nombre de usuario. El bootstrap recupera el perfil sin duplicarlo; los nombres personalizados se conservan. En el editor, "Usar el nombre de mi cuenta" permite actualizar perfiles anteriores.
 
 ### Seguridad y pruebas
 

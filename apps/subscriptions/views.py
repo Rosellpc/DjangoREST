@@ -1,5 +1,6 @@
 from rest_framework import viewsets, mixins
 from django.contrib.auth.hashers import check_password
+from django.db import transaction
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
@@ -8,6 +9,7 @@ from rest_framework.permissions import AllowAny
 
 from .models import MyListItem, Profile, SubscriptionPlan, UserSubscription, WatchHistory
 from .profile_access import access_token, accessible_profiles, require_profile_access
+from .services import ensure_initial_profile
 from .serializers import (
     MyListItemSerializer,
     ProfileSerializer,
@@ -34,7 +36,9 @@ class UserSubscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
         return UserSubscription.objects.select_related("plan").filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user, status="active", payment_provider="simulated")
+        with transaction.atomic():
+            subscription = serializer.save(user=self.request.user, status="active", payment_provider="simulated")
+            ensure_initial_profile(subscription)
 
 
 class PinThrottle(UserRateThrottle):
@@ -45,6 +49,14 @@ class PinThrottle(UserRateThrottle):
 class ProfileViewSet(viewsets.ModelViewSet):
     queryset = Profile.objects.none()
     serializer_class = ProfileSerializer
+
+    @action(detail=False, methods=["post"], url_path="initial", url_name="initial")
+    def initial_profile(self, request):
+        subscription = UserSubscription.objects.filter(user=request.user).first()
+        if not subscription:
+            raise ValidationError({"subscription": "Create a subscription before creating profiles."})
+        profile, created = ensure_initial_profile(subscription)
+        return Response(self.get_serializer(profile).data, status=201 if created else 200)
 
     def perform_update(self, serializer):
         require_profile_access(self.request, serializer.instance)

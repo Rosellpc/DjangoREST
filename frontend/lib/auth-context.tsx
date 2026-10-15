@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 
 import { blacklistRefreshToken, login, refreshAccessToken, register } from "@/lib/auth-api"
 import { clearTokens, getAccessToken, getRefreshToken } from "@/lib/auth-tokens"
-import { ApiAuthError, getCurrentAccount, type ApiAccount } from "@/lib/subscriptions-api"
+import { ApiAuthError, ApiRequestError, getCurrentAccount, type ApiAccount } from "@/lib/subscriptions-api"
 
 interface AuthContextType {
   account: ApiAccount | null
@@ -44,7 +44,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setAccount(data)
       } catch (error) {
         if (cancelled) return
-        setAccountError("No pudimos cargar tu cuenta. Inténtalo de nuevo.")
+        setAccountError(error instanceof ApiRequestError && error.status === 404
+          ? "La API de tu cuenta no está disponible en el backend publicado. Actualiza el despliegue de Render y comprueba API_BASE_URL en Vercel."
+          : "No pudimos cargar tu cuenta. Inténtalo de nuevo.")
         if (error instanceof ApiAuthError) {
           clearTokens()
           setAccount(null)

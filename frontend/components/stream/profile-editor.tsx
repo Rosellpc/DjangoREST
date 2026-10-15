@@ -11,6 +11,7 @@ import {
 } from "@/lib/profile-context"
 import { getPosterByIndex } from "@/lib/local-media"
 import { prepareProfileAvatar } from "@/lib/profile-avatar"
+import { useAuth } from "@/lib/auth-context"
 
 interface ProfileEditorProps {
   profile: Profile | null
@@ -20,6 +21,7 @@ interface ProfileEditorProps {
 type EditorView = "main" | "avatar" | "language" | "maturity" | "pin" | "delete"
 
 export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
+  const { account } = useAuth()
   const { addProfile, updateProfile, deleteProfile, setPin, removePin, profiles } = useProfile()
   const isNewProfile = !profile
 
@@ -283,10 +285,11 @@ export function ProfileEditor({ profile, onClose }: ProfileEditorProps) {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              maxLength={20}
+              maxLength={40}
               className="w-full rounded-xl border border-border bg-muted/50 px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Enter profile name"
             />
+            {account && <button type="button" onClick={() => setName((account.user.first_name.trim() || account.user.username).slice(0, 40))} className="mt-2 text-xs text-primary hover:underline">Usar el nombre de mi cuenta</button>}
           </div>
 
           {/* Game Handle */}

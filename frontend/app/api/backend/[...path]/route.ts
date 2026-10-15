@@ -23,7 +23,7 @@ async function proxy(request: NextRequest, path: string[]) {
   if (contentType) headers.set("content-type", contentType)
 
   const method = request.method.toUpperCase()
-  const init: RequestInit = { method, headers }
+  const init: RequestInit = { method, headers, cache: "no-store" }
 
   if (!["GET", "HEAD"].includes(method)) {
     init.body = await request.text()
@@ -34,7 +34,7 @@ async function proxy(request: NextRequest, path: string[]) {
 
   return new NextResponse(text, {
     status: upstream.status,
-    headers: { "content-type": upstream.headers.get("content-type") ?? "application/json" },
+    headers: { "content-type": upstream.headers.get("content-type") ?? "application/json", "cache-control": "private, no-store" },
   })
 }
 

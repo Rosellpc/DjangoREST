@@ -58,9 +58,9 @@ export const AVATAR_COLORS = [
 
 export const LANGUAGES = [
   { code: "en", name: "English" },
-  { code: "es", name: "Espanol" },
-  { code: "pt", name: "Portugues" },
-  { code: "fr", name: "Francais" },
+  { code: "es", name: "Español" },
+  { code: "pt", name: "Português" },
+  { code: "fr", name: "Français" },
   { code: "de", name: "Deutsch" },
   { code: "it", name: "Italiano" },
   { code: "ja", name: "Japanese" },

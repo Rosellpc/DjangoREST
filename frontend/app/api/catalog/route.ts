@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   return new NextResponse(body, {
     status: upstream.status,
     headers: {
-      "content-type": "application/json",
+      "content-type": "application/json; charset=utf-8",
       "cache-control": upstream.status === 200
         ? "public, s-maxage=300, stale-while-revalidate=3600"
         : "no-store",

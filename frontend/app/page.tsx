@@ -57,7 +57,7 @@ function StreamingApp() {
         setCatalogError(null)
       } catch {
         if (!mounted) return
-        setCatalogError("We could not load the catalog from the backend API.")
+        setCatalogError("No pudimos cargar el catálogo. Inténtalo de nuevo.")
       } finally {
         if (mounted) {
           setCatalogLoading(false)
@@ -75,7 +75,7 @@ function StreamingApp() {
     if (catalog.length === 0) {
       return {
         title: "StreamFlix",
-        description: "Loading catalog...",
+        description: "Cargando catálogo…",
         backgroundImage: getPosterByIndex(0),
         previewVideoSrc: getVideoByIndex(0),
       }
@@ -138,8 +138,8 @@ function StreamingApp() {
 
       <div className="home-shelves">
         <div className="library-container flex flex-wrap items-end justify-between gap-4">
-          <div><p className="cinema-eyebrow text-muted-foreground">Tu espacio de cine</p><h2 className="mt-2 text-xl font-semibold sm:text-2xl">?Qu? quieres ver hoy?</h2></div>
-          <Link href="/movies" className="text-xs text-muted-foreground hover:text-foreground">Explorar todas las pel?culas ?</Link>
+          <div><p className="cinema-eyebrow text-muted-foreground">Tu espacio de cine</p><h2 className="mt-2 text-xl font-semibold sm:text-2xl">¿Qué quieres ver hoy?</h2></div>
+          <Link href="/movies" className="text-xs text-muted-foreground hover:text-foreground">Explorar todas las películas →</Link>
         </div>
         <ContinueWatchingRow videos={continueWatchingWithProgress} />
         <VideoRow title="Para descubrir" videos={discover} />
@@ -149,7 +149,7 @@ function StreamingApp() {
 
       {(catalogLoading || catalogError) && (
         <div className="px-4 md:px-12 py-4">
-          {catalogLoading && <p className="text-sm text-muted-foreground">Loading catalog from API...</p>}
+          {catalogLoading && <p className="text-sm text-muted-foreground">Cargando películas…</p>}
           {catalogError && <p className="text-sm text-destructive">{catalogError}</p>}
         </div>
       )}
@@ -194,7 +194,7 @@ function AuthenticatedApp() {
   if (isLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
-        Loading session...
+        Preparando tu sesión…
       </main>
     )
   }

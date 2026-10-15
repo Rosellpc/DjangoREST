@@ -86,6 +86,6 @@ export function toStreamVideo(movie: CatalogMovie): StreamVideo {
     duration: minutes > 0 ? `${minutes}m` : "N/A",
     rating,
     genres: [rating, "Catalog"],
-    description: movie.description ?? "No description available.",
+    description: movie.description ?? "No hay una descripción disponible.",
   }
 }

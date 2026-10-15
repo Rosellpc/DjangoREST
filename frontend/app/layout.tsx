@@ -9,8 +9,8 @@ import "@fontsource/jetbrains-mono/700.css"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "StreamFlix - Watch Movies & TV Shows",
-  description: "Stream unlimited movies and TV shows on your favorite devices",
+  title: "StreamFlix | Cine a tu ritmo",
+  description: "Descubre películas, guarda tus favoritas y disfruta de tu próxima historia en StreamFlix.",
 }
 
 export default function RootLayout({
@@ -19,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="bg-background">
+    <html lang="es" className="bg-background">
       <body className="font-sans antialiased">
         {children}
       </body>

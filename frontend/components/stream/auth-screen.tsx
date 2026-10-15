@@ -49,13 +49,13 @@ export function AuthScreen() {
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/60 to-transparent" />
         <div className="relative z-10 flex h-full max-w-2xl flex-col justify-end p-12">
           <BrandLogo className="mb-4" />
-          <h1 className="text-5xl font-bold leading-tight">Tu catalogo conectado a Django.</h1>
+          <h1 className="text-5xl font-bold leading-tight">Tu próxima historia empieza aquí.</h1>
           <p className="mt-5 max-w-xl text-base text-muted-foreground">
-            Inicia sesion para guardar perfiles, lista personal e historial directamente en la base de datos.
+            Inicia sesión para guardar tus películas favoritas y continuar donde lo dejaste.
           </p>
           <div className="mt-8 inline-flex w-fit items-center gap-2 rounded-full border border-border/80 bg-card/70 px-4 py-2 text-sm text-muted-foreground">
             <ShieldCheck className="h-4 w-4 text-primary" />
-            Sesiones seguras con JWT
+            Tu cuenta, tus perfiles y tus películas
           </div>
         </div>
       </section>
@@ -66,14 +66,14 @@ export function AuthScreen() {
           <div className="mb-8 lg:hidden">
             <BrandLogo />
             <h1 className="mt-3 text-3xl font-bold">Bienvenido de vuelta</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Tu experiencia personalizada empieza aqui.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Tu experiencia personalizada empieza aquí.</p>
           </div>
 
           <div className="rounded-2xl border border-border bg-card/85 p-6 shadow-2xl backdrop-blur">
             <div className="mb-2">
-              <h2 className="text-xl font-semibold">{isRegistering ? "Crea tu cuenta" : "Inicia sesion"}</h2>
+              <h2 className="text-xl font-semibold">{isRegistering ? "Crea tu cuenta" : "Inicia sesión"}</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                {isRegistering ? "Empieza en menos de un minuto." : "Continua donde te quedaste."}
+                {isRegistering ? "Empieza en menos de un minuto." : "Continúa donde te quedaste."}
               </p>
             </div>
 

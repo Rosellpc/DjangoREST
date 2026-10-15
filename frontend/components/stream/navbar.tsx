@@ -32,10 +32,10 @@ export function Navbar({ onSearchClick }: { onSearchClick: () => void }) {
     return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", escape) }
   }, [])
   return <>
-    <header className={`${pathname === "/" ? "fixed inset-x-0" : "sticky"} top-3 z-40 px-3 sm:px-6`}>
+    <header className="site-header sticky top-0 z-40 px-3 pt-2 sm:px-6 sm:pt-3">
       <LiquidGlass className="glass-navbar mx-auto max-w-[1344px]">
-      <div className="flex h-[72px] items-center justify-between gap-4 px-4 sm:px-6">
-        <div className="flex items-center gap-12">
+      <div className="flex h-14 items-center justify-between gap-2 px-3 sm:h-16 sm:gap-4 sm:px-6">
+        <div className="flex min-w-0 items-center gap-6 lg:gap-10">
           <BrandLogo />
           <nav aria-label="Principal" className="hidden items-center gap-1.5 md:flex">
             {links.map(({ href, label }) => <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined}
@@ -44,9 +44,9 @@ export function Navbar({ onSearchClick }: { onSearchClick: () => void }) {
             </Link>)}
           </nav>
         </div>
-        <div className="flex items-center gap-4 sm:gap-6">
-          <button onClick={onSearchClick} aria-label="Buscar películas" className="glass-nav-link"><Search className="size-5" /><span className="hidden lg:inline">Buscar</span></button>
-          <span className="h-6 w-px bg-white/10" aria-hidden="true" />
+        <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+          <button onClick={onSearchClick} aria-label="Buscar películas" className="glass-nav-link hidden md:flex"><Search className="size-5" /><span className="hidden lg:inline">Buscar</span></button>
+          <span className="hidden h-6 w-px bg-white/10 md:block" aria-hidden="true" />
           <div ref={menuRef} className="relative">
             <button onClick={() => setMenuOpen(!menuOpen)} aria-label="Opciones de perfil" aria-expanded={menuOpen} aria-controls="profile-menu" className="flex items-center gap-2.5">
               <span className={`relative flex size-9 items-center justify-center overflow-hidden rounded-full ${color.bg} text-sm font-semibold`}>
@@ -67,8 +67,8 @@ export function Navbar({ onSearchClick }: { onSearchClick: () => void }) {
       </div>
       </LiquidGlass>
     </header>
-    <nav aria-label="Navegación móvil" className="fixed inset-x-4 bottom-4 z-40 mx-auto max-w-sm md:hidden">
-      <LiquidGlass className="p-2">
+    <nav aria-label="Navegación móvil" className="mobile-dock fixed inset-x-4 z-40 mx-auto max-w-xs md:hidden">
+      <LiquidGlass className="p-1">
       <div className="grid grid-cols-4 gap-1">
         {links.map(({ href, label, icon: Icon }) => <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined} className={`mobile-nav-item glass-mobile-link ${pathname === href ? "glass-nav-link-active" : ""}`}><Icon className="size-5" />{label}</Link>)}
         <button onClick={onSearchClick} className="mobile-nav-item glass-mobile-link"><Search className="size-5" />Buscar</button>

@@ -25,12 +25,12 @@ function StreamingLibrary({ children }: { children: ReactNode }) {
     setEditingProfile(null)
   }} />
   if (!isProfileSelected) return <ProfileSelector onManageProfiles={() => {}} />
-  return <div className="cinema-library min-h-screen bg-background pb-24 md:pb-0">
+  return <div className="app-shell cinema-library min-h-screen bg-background">
     <a href="#library-main" className="skip-link">Saltar al contenido</a>
     <Navbar onSearchClick={() => setSearchOpen(true)} />
     <main id="library-main" tabIndex={-1}>{children}</main>
     <SiteFooter />
-    <MovieDetails />
+    <MovieDetails videos={catalog} />
     <SearchModal videos={catalog} isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     <VideoPlayer isOpen={isPlayerOpen} onClose={closePlayer} videoTitle={playingVideo?.title ?? ""}
       videoId={playingVideo?.id} videoSrc={playingVideo?.videoSrc} posterImage={playingVideo?.thumbnail}

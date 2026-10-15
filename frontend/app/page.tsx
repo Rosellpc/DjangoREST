@@ -1,16 +1,14 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import Image from "next/image"
+import Link from "next/link"
 import { Navbar } from "@/components/stream/navbar"
 import { HeroBanner } from "@/components/stream/hero-banner"
 import { VideoRow } from "@/components/stream/video-row"
-import { Top10Row } from "@/components/stream/top10-row"
 import { ContinueWatchingRow } from "@/components/stream/continue-watching-row"
-import { VideoModal } from "@/components/stream/video-modal"
+import { MovieDetails } from "@/components/stream/movie-details"
 import { VideoPlayer } from "@/components/stream/video-player"
 import { SearchModal } from "@/components/stream/search-modal"
-import { MyListModal } from "@/components/stream/my-list-modal"
 import { ProfileSelector } from "@/components/stream/profile-selector"
 import { ProfileEditor } from "@/components/stream/profile-editor"
 import { AuthScreen } from "@/components/stream/auth-screen"
@@ -24,7 +22,6 @@ import { SiteFooter } from "@/components/stream/site-footer"
 
 function StreamingApp() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [isMyListOpen, setIsMyListOpen] = useState(false)
   const [catalog, setCatalog] = useState<StreamVideo[]>([])
   const [catalogLoading, setCatalogLoading] = useState(true)
   const [catalogError, setCatalogError] = useState<string | null>(null)
@@ -36,7 +33,6 @@ function StreamingApp() {
     playingVideo,
     closePlayer,
     continueWatching,
-    openVideoModal,
     registerCatalogVideos,
     updateWatchProgress,
     getWatchProgress,
@@ -94,11 +90,9 @@ function StreamingApp() {
     }
   }, [catalog])
 
-  const top10Today = useMemo(() => catalog.slice(0, 10), [catalog])
-  const trendingNow = useMemo(() => catalog.slice(0, 12), [catalog])
-  const topRated = useMemo(() => catalog.slice(12, 24), [catalog])
-  const newReleases = useMemo(() => catalog.slice(24, 36), [catalog])
-  const actionMovies = useMemo(() => catalog.slice(36, 48), [catalog])
+  const discover = useMemo(() => catalog.slice(1, 13), [catalog])
+  const movieNight = useMemo(() => catalog.slice(13, 25), [catalog])
+  const shortMovies = useMemo(() => catalog.filter((movie) => Number.parseInt(movie.duration, 10) < 90).slice(0, 12), [catalog])
   const continueWatchingWithProgress = useMemo(
     () =>
       continueWatching
@@ -113,7 +107,6 @@ function StreamingApp() {
         .filter((video): video is NonNullable<typeof video> => Boolean(video)),
     [continueWatching, getWatchProgress]
   )
-  const feedHighlights = useMemo(() => catalog.slice(0, 8), [catalog])
 
   if (!isProfileSelected && !showManageProfiles) {
     return <ProfileSelector onManageProfiles={() => setShowManageProfiles(true)} />
@@ -132,7 +125,7 @@ function StreamingApp() {
   }
 
   return (
-    <main className="min-h-screen bg-background pb-24 md:pb-0">
+    <main className="app-shell min-h-screen bg-background">
       <Navbar onSearchClick={() => setIsSearchOpen(true)} />
 
       <HeroBanner
@@ -143,49 +136,15 @@ function StreamingApp() {
         previewVideoSrc={featuredContent.previewVideoSrc}
       />
 
-      <div className="-mt-32 relative z-10 space-y-4">
-        <section className="px-4 md:px-12">
-          <div className="rounded-2xl border border-border/70 bg-card/70 p-4 md:p-6 backdrop-blur">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-primary">For You</p>
-                <h2 className="mt-1 text-xl font-semibold">Tu feed de hoy</h2>
-              </div>
-              <button
-                onClick={() => setIsMyListOpen(true)}
-                className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition hover:bg-muted/40 hover:text-foreground"
-              >
-                Ver mi lista
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {feedHighlights.map((video) => (
-                <button
-                  key={`feed-${video.id}`}
-                  onClick={() => openVideoModal(video)}
-                  className="group text-left"
-                >
-                  <div className="relative aspect-video overflow-hidden rounded-xl">
-                    <Image
-                      src={video.thumbnail}
-                      alt={video.title}
-                      fill
-                      className="object-cover transition duration-300 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-70" />
-                    <p className="absolute bottom-2 left-2 line-clamp-1 text-xs font-semibold">{video.title}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
+      <div className="home-shelves">
+        <div className="library-container flex flex-wrap items-end justify-between gap-4">
+          <div><p className="cinema-eyebrow text-muted-foreground">Tu espacio de cine</p><h2 className="mt-2 text-xl font-semibold sm:text-2xl">?Qu? quieres ver hoy?</h2></div>
+          <Link href="/movies" className="text-xs text-muted-foreground hover:text-foreground">Explorar todas las pel?culas ?</Link>
+        </div>
         <ContinueWatchingRow videos={continueWatchingWithProgress} />
-        <Top10Row title="Top 10 Movies" videos={top10Today} />
-        <VideoRow title="Trending Now" videos={trendingNow} />
-        <VideoRow title="Top Rated" videos={topRated.length > 0 ? topRated : trendingNow} />
-        <VideoRow title="New Releases" videos={newReleases.length > 0 ? newReleases : trendingNow} />
-        <VideoRow title="Action Movies" videos={actionMovies.length > 0 ? actionMovies : trendingNow} />
+        <VideoRow title="Para descubrir" videos={discover} />
+        <VideoRow title="Una noche de cine" videos={movieNight} />
+        <VideoRow title="Menos de 90 minutos" videos={shortMovies} />
       </div>
 
       {(catalogLoading || catalogError) && (
@@ -197,9 +156,8 @@ function StreamingApp() {
 
       <SiteFooter />
 
-      <VideoModal />
+      <MovieDetails videos={catalog} />
       <SearchModal videos={catalog} isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-      <MyListModal isOpen={isMyListOpen} onClose={() => setIsMyListOpen(false)} />
 
       <VideoPlayer
         isOpen={isPlayerOpen}

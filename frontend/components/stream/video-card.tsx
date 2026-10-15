@@ -1,171 +1,20 @@
 "use client"
 
-import { useState } from "react"
-import { Play, Plus, Check, ThumbsUp, ChevronDown, Info } from "lucide-react"
 import Image from "next/image"
-import Link from "next/link"
+import { Check, Plus } from "lucide-react"
 import { useVideo, type Video } from "@/lib/video-context"
 
-interface VideoCardProps {
-  id: string
-  title: string
-  thumbnail: string
-  videoSrc?: string
-  match?: number
-  year?: string
-  duration?: string
-  rating?: string
-  genres?: string[]
-}
-
-export function VideoCard({
-  id,
-  title,
-  thumbnail,
-  videoSrc,
-  match = 95,
-  year = "2024",
-  duration = "2h 15m",
-  rating = "TV-MA",
-  genres = ["Action", "Drama"],
-}: VideoCardProps) {
-  const [isHovered, setIsHovered] = useState(false)
-  const {
-    openVideoModal,
-    addToMyList,
-    removeFromMyList,
-    isInMyList,
-    toggleLike,
-    isLiked,
-  } = useVideo()
-
-  const inList = isInMyList(id)
-  const liked = isLiked(id)
-
-  const video: Video = {
-    id,
-    title,
-    thumbnail,
-    videoSrc,
-    match,
-    year,
-    duration,
-    rating,
-    genres,
-  }
-
-  const handleMyListClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (inList) {
-      removeFromMyList(id)
-    } else {
-      addToMyList(video)
-    }
-  }
-
-  const handleLikeClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    toggleLike(id)
-  }
-
-  const handlePlayClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    openVideoModal(video)
-  }
-
-  const handleMoreClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    openVideoModal(video)
-  }
-
-  return (
-    <div
-      className="relative flex-shrink-0 w-[150px] sm:w-[180px] md:w-[210px] lg:w-[240px] group cursor-pointer"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onClick={() => openVideoModal(video)}
-    >
-      <div
-        className={`relative aspect-video rounded overflow-hidden transition-all duration-300 ${
-          isHovered ? "md:scale-110 z-20 shadow-2xl" : "scale-100 z-0"
-        }`}
-      >
-        <Image
-          src={thumbnail}
-          alt={title}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 160px, (max-width: 1024px) 200px, 240px"
-        />
-
-        {isHovered && (
-          <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
-        )}
-      </div>
-
-      {isHovered && (
-        <div className="absolute top-full left-0 right-0 bg-card rounded-b p-2.5 md:p-3 shadow-2xl z-20 -mt-1 md:scale-110 origin-top hidden md:block">
-          <div className="flex items-center gap-2 mb-2">
-            <button
-              onClick={handlePlayClick}
-              className="w-8 h-8 rounded-full bg-foreground flex items-center justify-center hover:bg-foreground/90 transition-colors"
-            >
-              <Play className="w-4 h-4 text-background fill-background" />
-            </button>
-            <button
-              onClick={handleMyListClick}
-              className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
-                inList
-                  ? "bg-foreground border-foreground text-background"
-                  : "border-muted-foreground hover:border-foreground"
-              }`}
-            >
-              {inList ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4 text-foreground" />}
-            </button>
-            <button
-              onClick={handleLikeClick}
-              className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
-                liked
-                  ? "bg-foreground border-foreground text-background"
-                  : "border-muted-foreground hover:border-foreground"
-              }`}
-            >
-              <ThumbsUp className={`w-4 h-4 ${liked ? "fill-current" : "text-foreground"}`} />
-            </button>
-            <Link
-              href={`/title/${id}`}
-              onClick={(e) => e.stopPropagation()}
-              className="w-8 h-8 rounded-full border-2 border-muted-foreground flex items-center justify-center hover:border-foreground transition-colors"
-              title="More info"
-            >
-              <Info className="w-4 h-4 text-foreground" />
-            </Link>
-            <button
-              onClick={handleMoreClick}
-              className="w-8 h-8 rounded-full border-2 border-muted-foreground flex items-center justify-center hover:border-foreground transition-colors ml-auto"
-            >
-              <ChevronDown className="w-4 h-4 text-foreground" />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs mb-1">
-            <span className="text-green-500 font-semibold">{match}% Match</span>
-            <span className="border border-muted-foreground px-1 text-muted-foreground">{rating}</span>
-            <span className="text-muted-foreground">{duration}</span>
-          </div>
-
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            {genres.map((genre, i) => (
-              <span key={genre}>
-                {genre}
-                {i < genres.length - 1 && <span className="mx-1">•</span>}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+export function VideoCard(video: Video) {
+  const { openVideoModal, addToMyList, removeFromMyList, isInMyList } = useVideo()
+  const saved = isInMyList(video.id)
+  return <article className="shelf-card group">
+    <div className="relative">
+      <button onClick={() => openVideoModal(video)} aria-label={`Ver detalles de ${video.title}`} className="relative block aspect-[2/3] w-full overflow-hidden rounded-lg bg-card">
+        <Image src={video.thumbnail} alt="" fill sizes="(max-width: 640px) 130px, (max-width: 1024px) 160px, 185px" className="object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+      </button>
+      <button aria-label={`${saved ? "Quitar" : "Guardar"} ${video.title} ${saved ? "de" : "en"} My List`} aria-pressed={saved} onClick={() => saved ? removeFromMyList(video.id) : addToMyList(video)} className="absolute bottom-2 right-2 flex size-9 items-center justify-center rounded-full border border-white/25 bg-black/75 text-white">{saved ? <Check className="size-4" /> : <Plus className="size-4" />}</button>
     </div>
-  )
+    <button onClick={() => openVideoModal(video)} className="mt-3 block w-full truncate text-left text-xs font-medium sm:text-sm" title={video.title}>{video.title}</button>
+    <p className="mt-1 text-[11px] text-muted-foreground">{video.year}<span className="mx-2">·</span>{video.duration}</p>
+  </article>
 }
-
-

@@ -274,7 +274,9 @@ Frontend: 14 pruebas aprobadas; TypeScript correcto.
 
 ### Interfaz
 
-- `/` mantiene la pagina principal con su portada, feed y filas de peliculas. El logo STREAMFLIX lleva siempre a esta ruta.
+- `/` mantiene la pagina principal con una portada separada y filas horizontales de peliculas. El logo STREAMFLIX lleva siempre a esta ruta.
+- La portada usa imagen y texto separados, metadatos breves y dos acciones principales. Los avances se reproducen al solicitarlos. La navegacion movil es compacta y reserva espacio para el area segura del dispositivo.
+- Home y Movies comparten una ficha de pelicula: pantalla completa en movil y columnas en escritorio, con sinopsis, reproduccion, My List y sugerencias del catalogo real.
 - La navegacion muestra Movies (`/movies`) y My List (`/my-list`), tambien en movil. Home, TV Shows y New & Popular no aparecen en el menu.
 - Movies incluye una portada, catalogo completo con busqueda por titulo o descripcion, filtros por clasificacion y duracion, ordenamiento y paginacion de 24 peliculas.
 - My List muestra la coleccion del perfil activo, permite reproducir, consultar detalles y quitar peliculas, y ofrece estados de carga, error y lista vacia.

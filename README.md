@@ -138,6 +138,7 @@ Documentacion:
 Autenticacion:
 
 - Registro: `POST /api/auth/register/`
+- Cuenta y suscripcion del usuario autenticado: `GET /api/auth/me/`
 - Login: `POST /api/auth/login/`
 - JWT token: `POST /api/token/`
 - Refresh: `POST /api/token/refresh/`
@@ -179,7 +180,7 @@ uv run python manage.py check
 System check identified no issues
 
 uv run pytest
-37 passed
+41 passed
 ```
 
 ### Interfaz
@@ -190,6 +191,7 @@ uv run pytest
 - My List muestra la coleccion del perfil activo, permite reproducir, consultar detalles y quitar peliculas, y ofrece estados de carga, error y lista vacia.
 - Las paginas nuevas usan los posters y videos locales existentes. Los pagos siguen siendo simulados.
 - Las fotos de perfil admiten JPG, PNG y WebP de hasta 5 MB. El navegador las reduce a un maximo de 256 pixeles antes de guardarlas; la API limita y valida la imagen codificada.
+- El menu muestra el nombre del titular y el plan. "Mi cuenta y suscripcion" muestra correo, fecha de registro, perfil seleccionado, estado del plan y fechas de inicio/finalizacion registradas. Las suscripciones simuladas no muestran una proxima fecha de cobro inventada.
 
 ### Seguridad y pruebas
 

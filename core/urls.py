@@ -25,7 +25,7 @@ from rest_framework_simplejwt.views import (
     TokenVerifyView,
 )
 
-from apps.content.auth_views import RegisterView
+from apps.content.auth_views import AccountView, RegisterView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -37,6 +37,7 @@ urlpatterns = [
     ),
     path("api/", include("apps.content.urls")),
     path("api/auth/register/", RegisterView.as_view(), name="auth_register"),
+    path("api/auth/me/", AccountView.as_view(), name="auth_me"),
     path("api/auth/login/", TokenObtainPairView.as_view(), name="auth_login"),
     path("api/auth/refresh/", TokenRefreshView.as_view(), name="auth_refresh"),
     path("api/subscriptions/", include("apps.subscriptions.urls")),

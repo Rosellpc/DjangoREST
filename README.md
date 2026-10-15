@@ -1,4 +1,32 @@
-# StreamFlix from Django REST
+# StreamFlix
+
+Aplicación de streaming para portafolio, con catálogo de películas, cuentas de usuario, perfiles y suscripciones de demostración.
+
+**Demo:** [django-rest-sand.vercel.app](https://django-rest-sand.vercel.app) · **API:** [Catálogo](https://djangorest-w06k.onrender.com/api/movies/) · **Documentación:** [Swagger](https://djangorest-w06k.onrender.com/api/docs/)
+
+> Los pagos son simulados y los títulos reutilizan los videos y pósteres locales disponibles. El proyecto no procesa cobros reales.
+
+## Funcionalidades
+
+- Home con portada, feed y filas de películas; Movies con búsqueda, filtros, ordenamiento y paginación; My List por perfil.
+- Registro, login, renovación y cierre de sesión mediante JWT.
+- Mi cuenta con nombre del titular, correo, plan, estado y fechas de suscripción registradas.
+- Perfiles con preferencias, fotos JPG/PNG/WebP y bloqueo mediante PIN verificado en el servidor.
+- Reproductor, historial y seguimiento del progreso de reproducción.
+- Navegación Liquid Glass, logo carmesí, favicon y footer compartido.
+- Catálogo con carga progresiva, bloques de hasta 200 películas y caché pública de cinco minutos. Los datos privados de cuenta no usan esa caché.
+
+## Arquitectura
+
+```text
+Navegador → Vercel (Next.js y proxies internos)
+                         ↓
+                   Render (Django REST)
+                         ↓
+                   Neon (PostgreSQL)
+```
+
+Las notas de la primera versión están en [CHANGELOG.md](CHANGELOG.md).
 
 Monorepo de una app tipo streaming con backend en Django REST Framework y frontend en Next.js.
 
@@ -30,7 +58,7 @@ El backend expone autenticacion JWT, catalogo de peliculas, planes de suscripcio
 - Python 3.13+
 - uv
 - PostgreSQL
-- Node.js 20+
+- Node.js 22 LTS recomendado
 - pnpm
 
 ## Configuracion Del Backend
@@ -59,13 +87,15 @@ El backend expone autenticacion JWT, catalogo de peliculas, planes de suscripcio
    uv sync
    ```
 
-4. Ejecuta migraciones:
+4. Restaura primero las tablas del catálogo en PostgreSQL si la base está vacía. `streamflix_local.sql` es una referencia de datos; revisa su contenido antes de importarlo. Los modelos de contenido usan `managed = False`, por lo que `migrate` no crea estas tablas.
+
+5. Ejecuta migraciones:
 
    ```powershell
    uv run python manage.py migrate
    ```
 
-5. Levanta el backend:
+6. Levanta el backend:
 
    ```powershell
    uv run python manage.py runserver
@@ -96,7 +126,7 @@ El backend queda disponible en `http://127.0.0.1:8000`.
 4. Revisa la URL del backend:
 
    ```env
-   NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api
+   API_BASE_URL=http://127.0.0.1:8000/api
    ```
 
 5. Levanta la app:
@@ -169,7 +199,63 @@ Suscripciones:
 
 ## Deploy
 
-El proceso completo de despliegue en AWS esta documentado en [`docs/deploy-aws.md`](docs/deploy-aws.md).
+El despliegue del portafolio utiliza Vercel Hobby, Render Free y Neon Free. La guía de [AWS](docs/deploy-aws.md) es una alternativa y requiere adaptar el enrutamiento de Nginx para conservar los proxies `/api/catalog` y `/api/backend/` de Next.js.
+
+### 1. Neon: base de datos
+
+Crea una base PostgreSQL vacía y restaura una copia actualizada de la base local con `pg_dump` y `pg_restore`, usando una conexión directa y SSL. Incluye las tablas del catálogo antes de ejecutar las migraciones de Django. No publiques respaldos con datos privados en GitHub.
+
+### 2. Render: backend
+
+Conecta este repositorio como un Web Service de Python, con directorio raíz vacío y plan Free.
+
+**Build Command:**
+
+```bash
+pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
+```
+
+**Start Command:**
+
+```bash
+gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+```
+
+Configura las variables en Render → Environment:
+
+| Variable | Valor |
+| --- | --- |
+| `DJANGO_ENV` | `prod` |
+| `DEBUG` | `false` |
+| `SECRET_KEY` | Clave privada nueva |
+| `JWT_SIGNING_KEY` | Otra clave privada nueva |
+| `ALLOWED_HOSTS` | Hostname real de Render, sin protocolo ni barras |
+| `DB_HOST` | Host de Neon |
+| `DB_NAME` | Nombre de la base de Neon |
+| `DB_USER` | Usuario de Neon |
+| `DB_PASSWORD` | Contraseña de Neon |
+| `DB_PORT` | `5432` |
+
+`core/settings/prod.py` configura SSL para PostgreSQL y WhiteNoise para los archivos estáticos. La ruta `/api/subscriptions/plans/` permite comprobar la conexión con la base. La raíz `/` del backend no tiene página de inicio.
+
+### 3. Vercel: frontend
+
+Importa el repositorio, elige Next.js y configura `frontend` como Root Directory. Usa `pnpm install --frozen-lockfile` para instalar y `pnpm build` para compilar; conserva el directorio de salida automático.
+
+En las variables de producción establece:
+
+```env
+API_BASE_URL=https://TU-BACKEND.onrender.com/api
+```
+
+Después despliega. Cuando cambies variables, vuelve a desplegar. Las credenciales de Neon pertenecen exclusivamente al backend.
+
+### Entornos y límites
+
+- Django carga `.env` en desarrollo. El `.env.local` de la raíz puede servir como referencia privada, pero no se carga automáticamente.
+- Next.js carga `frontend/.env.local` en desarrollo. `API_BASE_URL` es una variable del servidor; no necesita el prefijo `NEXT_PUBLIC_`.
+- Render Free puede suspender el servicio por inactividad y demorar el primer acceso. Los planes gratuitos tienen cuotas; los videos consumen ancho de banda. Esta configuración está orientada a demostraciones y portafolio.
+- Para actualizar, sube los cambios a GitHub y comprueba los despliegues de Render y Vercel. No subas archivos `.env` ni contraseñas.
 
 ## Estado Actual
 
@@ -181,6 +267,8 @@ System check identified no issues
 
 uv run pytest
 41 passed
+
+Frontend: 13 pruebas aprobadas; TypeScript y compilación correctos.
 ```
 
 ### Interfaz
